@@ -26,7 +26,7 @@ export function LoginForm() {
 
     try {
       await signIn(email, password)
-      router.push("/admin/dashboard")
+      router.push("/")
     } catch (err) {
       console.error(err)
     } finally {
@@ -38,7 +38,7 @@ export function LoginForm() {
     setGoogleLoading(true)
     try {
       await signInWithGoogle()
-      router.push("/admin/dashboard")
+      router.push("/")
     } catch (err) {
       console.error(err)
     } finally {

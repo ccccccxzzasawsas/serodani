@@ -256,7 +256,7 @@ export default function FineDiningPage() {
                 HOME
               </a>
               <a href="/rooms" className="text-sm hover:text-orange-400 transition-colors">
-                ROOMS
+                COTTAGES
               </a>
               <a href="/gallery" className="text-sm hover:text-orange-400 transition-colors">
                 GALLERY
@@ -265,10 +265,7 @@ export default function FineDiningPage() {
                 FINE DINING
               </a>
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
-                WINE CELLAR & BAR
-              </a>
-              <a href="/#services" className="text-sm hover:text-orange-400 transition-colors">
-                OUR SERVICES
+                WINE
               </a>
               <a href="/#contact" className="text-sm hover:text-orange-400 transition-colors">
                 CONTACT

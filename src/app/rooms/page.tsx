@@ -112,25 +112,22 @@ export default function RoomsPage() {
           <div className="flex items-center justify-between">
             <div className="flex space-x-8">
               <a href="/" className="text-sm hover:text-orange-400 transition-colors">
-                მთავარი
+                HOME
               </a>
               <a href="/rooms" className="text-sm text-orange-400">
-                ოთახები
+                COTTAGES
               </a>
               <a href="/gallery" className="text-sm hover:text-orange-400 transition-colors">
-                გალერეა
+                GALLERY
               </a>
               <a href="/fine-dining" className="text-sm hover:text-orange-400 transition-colors">
-                რესტორანი
+                FINE DINING
               </a>
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
-                მარანი და ბარი
-              </a>
-              <a href="/#services" className="text-sm hover:text-orange-400 transition-colors">
-                სერვისები
+                WINE
               </a>
               <a href="/#contact" className="text-sm hover:text-orange-400 transition-colors">
-                კონტაქტი
+                CONTACT
               </a>
             </div>
             <div className="flex items-center space-x-4">
@@ -138,7 +135,7 @@ export default function RoomsPage() {
                 variant="outline"
                 className="border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black"
               >
-                დაჯავშნე
+                Book Now
               </Button>
 
               {/* Login/User Menu */}
@@ -154,7 +151,7 @@ export default function RoomsPage() {
                     onClick={handleSignOut}
                     className="text-orange-400 hover:text-orange-300"
                   >
-                    გასვლა
+                    Sign Out
                   </Button>
                 </div>
               ) : (
@@ -165,7 +162,7 @@ export default function RoomsPage() {
                     className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10"
                   >
                     <User className="mr-2 h-4 w-4" />
-                    შესვლა
+                    Login
                   </Button>
                 </Link>
               )}
@@ -179,7 +176,7 @@ export default function RoomsPage() {
         <div className="absolute inset-0">
           <Image
             src={heroImageUrl}
-            alt="სასტუმროს ოთახი"
+            alt="Hotel Cottage"
             fill
             className="object-cover"
             priority
@@ -189,21 +186,21 @@ export default function RoomsPage() {
         </div>
         <div className="relative z-10 text-center">
           <div className="bg-black/60 backdrop-blur-sm p-8 rounded-lg max-w-md">
-            <h1 className="text-2xl font-bold mb-4">ოთახები</h1>
+            <h1 className="text-2xl font-bold mb-4">COTTAGES</h1>
             <p className="text-gray-200 mb-6">
-              8 ბუტიკ და 14 თანამედროვე უნიკალურად მორთული ოთახი ბიზნეს და დასვენების მიზნით ჩამოსული სტუმრებისათვის, 
-              შეგვიძლია ერთდროულად 28-მდე სტუმარს ვუმასპინძლოთ.
+              8 boutique and 14 modern uniquely decorated cottages for business and leisure guests,
+              we can accommodate up to 28 guests at once.
             </p>
-            <Button className="bg-blue-600 hover:bg-blue-700">დაჯავშნე ახლავე</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700">Book Now</Button>
           </div>
         </div>
       </section>
 
-      {/* Rooms Section */}
+      {/* Cottages Section */}
       {loading ? (
         <div className="py-20 bg-white text-gray-900 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">ოთახების ჩატვირთვა...</p>
+          <p className="mt-4 text-gray-600">Loading cottages...</p>
         </div>
       ) : rooms.length > 0 ? (
         <>
@@ -227,7 +224,7 @@ export default function RoomsPage() {
                                   <div className="relative h-96 w-full group">
                                     <Image
                                       src={imageUrl || "/placeholder.svg?height=400&width=600"}
-                                      alt={`${room.name} - ფოტო ${imgIndex + 1}`}
+                                      alt={`${room.name} - Photo ${imgIndex + 1}`}
                                       fill
                                       className="object-cover rounded-lg"
                                       loading="lazy"
@@ -259,8 +256,8 @@ export default function RoomsPage() {
                           <h2 className="text-3xl font-bold">{room.name}</h2>
                           <p className="text-gray-600 leading-relaxed">{room.description}</p>
                           <div className="flex justify-between items-center">
-                            <span className="text-2xl font-bold text-blue-600">{room.price} ლარი</span>
-                            <Button className="bg-blue-600 hover:bg-blue-700 text-white">დაჯავშნე ახლავე</Button>
+                            <span className="text-2xl font-bold text-blue-600">{room.price} GEL</span>
+                            <Button className="bg-blue-600 hover:bg-blue-700 text-white">Book Now</Button>
                           </div>
                         </div>
                       </>
@@ -270,8 +267,8 @@ export default function RoomsPage() {
                           <h2 className="text-3xl font-bold">{room.name}</h2>
                           <p className="text-gray-600 leading-relaxed">{room.description}</p>
                           <div className="flex justify-between items-center">
-                            <span className="text-2xl font-bold text-blue-600">{room.price} ლარი</span>
-                            <Button className="bg-blue-600 hover:bg-blue-700 text-white">დაჯავშნე ახლავე</Button>
+                            <span className="text-2xl font-bold text-blue-600">{room.price} GEL</span>
+                            <Button className="bg-blue-600 hover:bg-blue-700 text-white">Book Now</Button>
                           </div>
                         </div>
                         <div className="relative order-1 lg:order-2 cursor-pointer" onClick={() => openImageDialog(room)}>
@@ -282,7 +279,7 @@ export default function RoomsPage() {
                                   <div className="relative h-96 w-full group">
                                     <Image
                                       src={imageUrl || "/placeholder.svg?height=400&width=600"}
-                                      alt={`${room.name} - ფოტო ${imgIndex + 1}`}
+                                      alt={`${room.name} - Photo ${imgIndex + 1}`}
                                       fill
                                       className="object-cover rounded-lg"
                                       loading="lazy"
@@ -320,11 +317,11 @@ export default function RoomsPage() {
         </>
       ) : (
         <div className="py-20 bg-white text-gray-900 text-center">
-          <p className="text-gray-600">ამჟამად ოთახები არ არის ხელმისაწვდომი. გთხოვთ, შემოგვიხედოთ მოგვიანებით.</p>
+          <p className="text-gray-600">Currently no cottages are available. Please check back later.</p>
         </div>
       )}
 
-      {/* ფოტოების გადიდების დიალოგი */}
+      {/* Photo Enlargement Dialog */}
       <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
@@ -344,11 +341,11 @@ export default function RoomsPage() {
                             <div className="relative rounded-lg overflow-hidden aspect-video h-[60vh]">
                               <img 
                                 src={image.url} 
-                                alt={`${selectedRoom.name} - ფოტო ${index + 1}`} 
+                                alt={`${selectedRoom.name} - Photo ${index + 1}`} 
                                 className="w-full h-full object-contain"
                               />
                               <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                                ფოტო {index + 1} / {selectedRoom.images.length}
+                                Photo {index + 1} / {selectedRoom.images.length}
                               </div>
                             </div>
                           </div>
@@ -376,7 +373,7 @@ export default function RoomsPage() {
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setImageDialogOpen(false)}>
-              დახურვა
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

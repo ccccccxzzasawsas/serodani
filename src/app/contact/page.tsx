@@ -29,7 +29,7 @@ export default function ContactPage() {
                 HOME
               </a>
               <a href="/rooms" className="text-sm hover:text-orange-400 transition-colors">
-                ROOMS
+                COTTAGES
               </a>
               <a href="/gallery" className="text-sm hover:text-orange-400 transition-colors">
                 GALLERY
@@ -38,10 +38,9 @@ export default function ContactPage() {
                 FINE DINING
               </a>
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
-                WINE CELLAR & BAR
+                WINE
               </a>
-
-              <a href="/contact" className="text-sm text-orange-400">
+              <a href="/#contact" className="text-sm text-orange-400">
                 CONTACT
               </a>
             </div>

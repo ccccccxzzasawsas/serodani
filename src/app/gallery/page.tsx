@@ -141,7 +141,7 @@ export default function GalleryPage() {
                 HOME
               </a>
               <a href="/rooms" className="text-sm hover:text-orange-400 transition-colors">
-                ROOMS
+                COTTAGES
               </a>
               <a href="/gallery" className="text-sm text-orange-400">
                 GALLERY
@@ -150,10 +150,7 @@ export default function GalleryPage() {
                 FINE DINING
               </a>
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
-                WINE CELLAR & BAR
-              </a>
-              <a href="/#services" className="text-sm hover:text-orange-400 transition-colors">
-                OUR SERVICES
+                WINE
               </a>
               <a href="/#contact" className="text-sm hover:text-orange-400 transition-colors">
                 CONTACT

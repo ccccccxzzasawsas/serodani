@@ -316,11 +316,11 @@ export default function KviriaHotel() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex space-x-8">
-              <a href="#" className="text-sm hover:text-orange-400 transition-colors">
+              <a href="/" className="text-sm text-orange-400">
                 HOME
               </a>
               <a href="/rooms" className="text-sm hover:text-orange-400 transition-colors">
-                ROOMS
+                COTTAGES
               </a>
               <a href="/gallery" className="text-sm hover:text-orange-400 transition-colors">
                 GALLERY
@@ -329,12 +329,9 @@ export default function KviriaHotel() {
                 FINE DINING
               </a>
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
-                WINE CELLAR & BAR
+                WINE
               </a>
-              <a href="/#services" className="text-sm hover:text-orange-400 transition-colors">
-                OUR SERVICES
-              </a>
-              <a href="/contact" className="text-sm hover:text-orange-400 transition-colors">
+              <a href="/#contact" className="text-sm hover:text-orange-400 transition-colors">
                 CONTACT
               </a>
             </div>
@@ -512,8 +509,8 @@ export default function KviriaHotel() {
               HEART OF SIGHNAGHI AND OFFERS BREATHTAKING VIEWS OF THE ALAZANI VALLEY.
             </p>
             <p>
-              THE HOTEL HAS 8 ROOMS OF DIFFERENT CATEGORIES, EACH ROOM IS EQUIPPED WITH ALL THE NECESSARY AMENITIES FOR
-              A COMFORTABLE STAY.
+              THE HOTEL HAS 8 COTTAGES OF DIFFERENT CATEGORIES, EACH COTTAGE IS EQUIPPED WITH ALL THE NECESSARY AMENITIES FOR
+              YOUR STAY
             </p>
             <p>
               THE HOTEL ALSO HAS A RESTAURANT WHERE YOU CAN TASTE TRADITIONAL GEORGIAN CUISINE AND ENJOY THE BEST WINES
