@@ -9,7 +9,7 @@ import Link from "next/link"
 import { collection, getDoc, doc, getDocs } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
 import { Footer } from "@/components/Footer"
-import { getDownloadURL, ref, listAll } from "firebase/storage"
+import { getDownloadURL, ref, listAll, getMetadata } from "firebase/storage"
 
 export default function GalleryPage() {
   const { user, signOut } = useAuth()
@@ -59,21 +59,36 @@ export default function GalleryPage() {
           const galleryResult = await listAll(galleryRef);
           
           if (galleryResult.items.length > 0) {
-            const galleryImagePromises = galleryResult.items.map(async (imageRef) => {
-              try {
-                const url = await getDownloadURL(imageRef);
-                return url;
-              } catch (error) {
-                console.error("Error getting gallery image URL:", error);
-                return null;
-              }
-            });
+            // შევაგროვოთ ყველა ფაილის მეტადატა და URL ერთდროულად
+            const galleryImagesWithMetadata = await Promise.all(
+              galleryResult.items.map(async (imageRef) => {
+                try {
+                  const url = await getDownloadURL(imageRef);
+                  const metadata = await getMetadata(imageRef);
+                  return {
+                    url: url,
+                    timeCreated: metadata.timeCreated ? new Date(metadata.timeCreated) : new Date(),
+                    name: imageRef.name
+                  };
+                } catch (error) {
+                  console.error(`Error processing gallery image ${imageRef.name}:`, error);
+                  return null;
+                }
+              })
+            );
             
-            const galleryImageUrls = (await Promise.all(galleryImagePromises)).filter(url => url !== null) as string[];
+            // გავფილტროთ null მნიშვნელობები და დავალაგოთ თარიღის მიხედვით (ახლიდან ძველისკენ)
+            const sortedGalleryImages = galleryImagesWithMetadata
+              .filter(item => item !== null)
+              .sort((a, b) => {
+                if (!a || !b) return 0;
+                return b.timeCreated.getTime() - a.timeCreated.getTime();
+              })
+              .map(item => item!.url);
             
-            if (galleryImageUrls.length > 0) {
-              setGalleryImages(galleryImageUrls);
-              console.log("Gallery images loaded from Firebase Storage:", galleryImageUrls.length);
+            if (sortedGalleryImages.length > 0) {
+              setGalleryImages(sortedGalleryImages);
+              console.log("Gallery images loaded and sorted from Firebase Storage:", sortedGalleryImages.length);
             } else {
               console.log("No valid gallery images found in Firebase Storage");
               setGalleryImages([]);
@@ -116,7 +131,7 @@ export default function GalleryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen bg-white text-gray-900 flex flex-col">
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-sm text-white">
         <div className="container mx-auto px-4 py-4">
@@ -209,7 +224,7 @@ export default function GalleryPage() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 py-16 flex-grow">
         {loading ? (
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-400"></div>

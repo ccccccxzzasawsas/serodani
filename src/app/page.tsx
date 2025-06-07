@@ -9,7 +9,7 @@ import { collection, getDocs, doc, getDoc } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
-import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage"
+import { getStorage, ref, listAll, getDownloadURL, getMetadata } from "firebase/storage"
 import { Footer } from "@/components/Footer"
 
 export default function KviriaHotel() {
@@ -139,21 +139,36 @@ export default function KviriaHotel() {
           const galleryResult = await listAll(galleryRef);
           
           if (galleryResult.items.length > 0) {
-            const galleryImagePromises = galleryResult.items.map(async (imageRef) => {
-              try {
-                const url = await getDownloadURL(imageRef);
-                return url;
-              } catch (error) {
-                console.error("Error getting gallery image URL:", error);
-                return null;
-              }
-            });
+            // შევაგროვოთ ყველა ფაილის მეტადატა და URL ერთდროულად
+            const galleryImagesWithMetadata = await Promise.all(
+              galleryResult.items.map(async (imageRef) => {
+                try {
+                  const url = await getDownloadURL(imageRef);
+                  const metadata = await getMetadata(imageRef);
+                  return {
+                    url: url,
+                    timeCreated: metadata.timeCreated ? new Date(metadata.timeCreated) : new Date(),
+                    name: imageRef.name
+                  };
+                } catch (error) {
+                  console.error(`Error processing gallery image ${imageRef.name}:`, error);
+                  return null;
+                }
+              })
+            );
             
-            const galleryImageUrls = (await Promise.all(galleryImagePromises)).filter(url => url !== null) as string[];
+            // გავფილტროთ null მნიშვნელობები და დავალაგოთ თარიღის მიხედვით (ახლიდან ძველისკენ)
+            const sortedGalleryImages = galleryImagesWithMetadata
+              .filter(item => item !== null)
+              .sort((a, b) => {
+                if (!a || !b) return 0;
+                return b.timeCreated.getTime() - a.timeCreated.getTime();
+              })
+              .map(item => item!.url);
             
-            if (galleryImageUrls.length > 0) {
-              setGalleryImages(galleryImageUrls);
-              console.log("Gallery images loaded from Firebase Storage:", galleryImageUrls.length);
+            if (sortedGalleryImages.length > 0) {
+              setGalleryImages(sortedGalleryImages);
+              console.log("Gallery images loaded and sorted from Firebase Storage:", sortedGalleryImages.length);
             } else {
               console.log("No valid gallery images found in Firebase Storage, using fallback local images");
               // ფოლბექი ლოკალური სურათებისთვის
