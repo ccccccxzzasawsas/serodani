@@ -9,7 +9,7 @@ import Link from "next/link"
 import { collection, getDoc, doc, getDocs } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
 import { Footer } from "@/components/Footer"
-import { getDownloadURL, ref } from "firebase/storage"
+import { getDownloadURL, ref, listAll } from "firebase/storage"
 
 export default function GalleryPage() {
   const { user, signOut } = useAuth()
@@ -17,27 +17,6 @@ export default function GalleryPage() {
   const [heroImage, setHeroImage] = useState<string | null>(null) // დეფოლტად არ ვაყენებთ ლოკალურ სურათს
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
-
-  // ფუნქცია Firebase Storage URL-ის გასაწმენდად და დასაკონვერტირებლად
-  const getProperImageUrl = async (url: string): Promise<string | null> => {
-    if (url.startsWith('gs://')) {
-      try {
-        // თუ URL იწყება gs:// ფორმატით, გადავაკონვერტიროთ https:// ფორმატში
-        console.log("Converting gs:// URL to https://", url);
-        const storageRef = ref(storage, url);
-        const httpsUrl = await getDownloadURL(storageRef);
-        console.log("Converted URL:", httpsUrl);
-        return httpsUrl;
-      } catch (error) {
-        console.error("Error converting gs:// URL:", error);
-        return null; // შეცდომის შემთხვევაში ვაბრუნებთ null ორიგინალი URL-ის ნაცვლად
-      }
-    }
-    
-    // CORS პრობლემების გამო აღარ ვამოწმებთ URL-ის ვალიდურობას fetch მეთოდით
-    // უბრალოდ ვაბრუნებთ URL-ს და სურათის კომპონენტი თავად დაიჭერს შეცდომას
-    return url;
-  };
 
   useEffect(() => {
     // გავასუფთავოთ ბრაუზერის ქეში სურათებიდან
@@ -66,65 +45,46 @@ export default function GalleryPage() {
         // ჰერო სურათის წამოღება Firebase-დან
         const heroDoc = await getDoc(doc(db, "sections", "galleryHero"))
         if (heroDoc.exists() && heroDoc.data().imageUrl) {
-          const heroUrl = await getProperImageUrl(heroDoc.data().imageUrl);
-          if (heroUrl) {
-            setHeroImage(heroUrl);
-            console.log("Gallery hero loaded from Firebase:", heroUrl)
-          } else {
-            console.log("Gallery hero URL not valid, not displaying any hero")
-          }
+          const heroUrl = heroDoc.data().imageUrl;
+          setHeroImage(heroUrl);
+          console.log("Gallery hero loaded from Firebase:", heroUrl)
         } else {
           console.log("Gallery hero not found in Firebase")
         }
         
-        // სადილის სურათების წამოღება Firebase-დან
-        console.log("Fetching gallery images from Firebase collection 'gallery'...")
-        const gallerySnapshot = await getDocs(collection(db, "gallery"))
-        
-        // შევქმნათ სურათების მასივი მეტამონაცემებით, რომ შევძლოთ დათარიღებით დალაგება
-        const imagesWithMeta: { url: string, createdAt: Date }[] = [];
-        
-        // ყველა url-ის დამუშავება
-        const imagePromises: Promise<{url: string | null, createdAt: Date}>[] = [];
-        gallerySnapshot.forEach((doc) => {
-          if (doc.data().url) {
-            imagePromises.push(
-              getProperImageUrl(doc.data().url)
-                .then(processedUrl => {
-                  if (processedUrl) {
-                    console.log("Found and processed Firebase gallery image:", processedUrl);
-                    // შევინახოთ URL მეტამონაცემებთან ერთად
-                    return {
-                      url: processedUrl,
-                      createdAt: doc.data().createdAt ? new Date(doc.data().createdAt.toDate()) : new Date()
-                    };
-                  } else {
-                    console.log("Skipping invalid Firebase gallery image URL:", doc.data().url);
-                    return { url: null, createdAt: new Date() };
-                  }
-                })
-            );
+        // გალერიის სურათების წამოღება Firebase Storage-დან /gallery ფოლდერიდან
+        try {
+          console.log("Fetching gallery images from Firebase Storage '/gallery' folder...");
+          const galleryRef = ref(storage, '/gallery');
+          const galleryResult = await listAll(galleryRef);
+          
+          if (galleryResult.items.length > 0) {
+            const galleryImagePromises = galleryResult.items.map(async (imageRef) => {
+              try {
+                const url = await getDownloadURL(imageRef);
+                return url;
+              } catch (error) {
+                console.error("Error getting gallery image URL:", error);
+                return null;
+              }
+            });
+            
+            const galleryImageUrls = (await Promise.all(galleryImagePromises)).filter(url => url !== null) as string[];
+            
+            if (galleryImageUrls.length > 0) {
+              setGalleryImages(galleryImageUrls);
+              console.log("Gallery images loaded from Firebase Storage:", galleryImageUrls.length);
+            } else {
+              console.log("No valid gallery images found in Firebase Storage");
+              setGalleryImages([]);
+            }
+          } else {
+            console.log("No gallery images found in Firebase Storage");
+            setGalleryImages([]);
           }
-        });
-        
-        // პარალელურად დავამუშავოთ ყველა URL
-        if (imagePromises.length > 0) {
-          const processedImageData = await Promise.all(imagePromises);
-          
-          // გავფილტროთ მხოლოდ მოქმედი URL-ები (null ღირებულებები გამოვრიცხოთ)
-          // და დავალაგოთ თარიღის მიხედვით - ახლიდან ძველისკენ
-          const validImagesWithMeta = processedImageData
-            .filter(item => item.url !== null)
-            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-          
-          // ამოვიღოთ მხოლოდ URL-ები დალაგებული მასივიდან
-          const validImages = validImagesWithMeta.map(item => item.url) as string[];
-          
-          setGalleryImages(validImages);
-          console.log(`Successfully set Firebase gallery images: ${validImages.length} valid images found`);
-        } else {
-          console.log("No Firebase gallery images found");
-          setGalleryImages([]); // ცარიელი მასივი თუ სურათები არ არის
+        } catch (error) {
+          console.error("Error fetching gallery images from Firebase Storage:", error);
+          setGalleryImages([]);
         }
       } catch (error) {
         console.error("Error fetching gallery content:", error)

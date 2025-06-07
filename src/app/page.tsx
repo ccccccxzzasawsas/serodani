@@ -132,6 +132,50 @@ export default function KviriaHotel() {
           console.log("Guest review document not found or no imageUrl")
         }
         
+        // გალერიის სურათების წამოღება Firebase Storage-დან /gallery ფოლდერიდან
+        try {
+          console.log("Fetching gallery images from Firebase Storage '/gallery' folder...");
+          const galleryRef = ref(storage, '/gallery');
+          const galleryResult = await listAll(galleryRef);
+          
+          if (galleryResult.items.length > 0) {
+            const galleryImagePromises = galleryResult.items.map(async (imageRef) => {
+              try {
+                const url = await getDownloadURL(imageRef);
+                return url;
+              } catch (error) {
+                console.error("Error getting gallery image URL:", error);
+                return null;
+              }
+            });
+            
+            const galleryImageUrls = (await Promise.all(galleryImagePromises)).filter(url => url !== null) as string[];
+            
+            if (galleryImageUrls.length > 0) {
+              setGalleryImages(galleryImageUrls);
+              console.log("Gallery images loaded from Firebase Storage:", galleryImageUrls.length);
+            } else {
+              console.log("No valid gallery images found in Firebase Storage, using fallback local images");
+              // ფოლბექი ლოკალური სურათებისთვის
+              const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`);
+              localGalleryImages[1] = '/2.png';
+              setGalleryImages(localGalleryImages);
+            }
+          } else {
+            console.log("No gallery images found in Firebase Storage, using fallback local images");
+            // ფოლბექი ლოკალური სურათებისთვის
+            const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`);
+            localGalleryImages[1] = '/2.png';
+            setGalleryImages(localGalleryImages);
+          }
+        } catch (error) {
+          console.error("Error fetching gallery images from Firebase Storage:", error);
+          // ფოლბექი ლოკალური სურათებისთვის შეცდომის შემთხვევაში
+          const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`);
+          localGalleryImages[1] = '/2.png';
+          setGalleryImages(localGalleryImages);
+        }
+        
         setLoading(false)
       } catch (error) {
         console.error("Error fetching content:", error)
@@ -147,18 +191,6 @@ export default function KviriaHotel() {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [])
-
-  // შევქმნათ გალერიის ფოტოების მასივი ლოკალური ფოლდერიდან
-  useEffect(() => {
-    // გალერიის ფოტოების მასივი ლოკალური /public ფოლდერიდან (და არა /galler-დან)
-    const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`)
-    
-    // თუ index 2-ზე არის, გამოვიყენოთ PNG ფორმატი, რადგან ეს ფაილი 2.png არის
-    localGalleryImages[1] = '/2.png'
-    
-    setGalleryImages(localGalleryImages)
-    console.log("Gallery images loaded from local folder: / (root)")
   }, [])
   
   // ცალკე useEffect სლაიდერის ანიმაციისთვის, რომელიც გაეშვება ფოტოების ჩატვირთვის შემდეგ
@@ -528,8 +560,6 @@ export default function KviriaHotel() {
           </div>
         </div>
       </section>
-
-
 
       {/* Gallery Section */}
       <section id="gallery" className="py-20 bg-[#242323]">
