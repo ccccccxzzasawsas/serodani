@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "cleanUrls": true,
