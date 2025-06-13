@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import { User } from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
-import { collection, getDoc, doc, getDocs } from "firebase/firestore"
+import { getDoc, doc } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
 import { Footer } from "@/components/Footer"
 import { getDownloadURL, ref } from "firebase/storage"
+import { fetchWines } from "@/lib/data-fetching"
 
 export default function WinesPage() {
   const { user, signOut } = useAuth()
@@ -84,37 +85,36 @@ export default function WinesPage() {
           console.log("Wine hero not found in Firebase");
         }
         
-        // ღვინის სურათების წამოღება Firebase-დან
-        console.log("Fetching wine images from Firebase collection 'wines'...");
-        const wineSnapshot = await getDocs(collection(db, "wines"))
+        // ღვინის სურათების წამოღება ქეშირებული ფუნქციით
+        console.log("Fetching wine images using cached function...");
+        const wines = await fetchWines();
         
         // დავალაგოთ დოკუმენტები createdAt-ის მიხედვით, ახლიდან ძველისკენ
-        const sortedDocs = wineSnapshot.docs
-          .map(doc => ({ id: doc.id, data: doc.data() }))
-          .filter(doc => doc.data.url) // მხოლოდ ის დოკუმენტები, რომლებსაც აქვთ url
+        const sortedWines = wines
+          .filter(wine => wine.url) // მხოლოდ ის დოკუმენტები, რომლებსაც აქვთ url
           .sort((a, b) => {
             // დავალაგოთ createdAt ველის მიხედვით, თუ ეს ველი არსებობს
-            if (a.data.createdAt && b.data.createdAt) {
-              const dateA = a.data.createdAt.toDate ? a.data.createdAt.toDate() : new Date(a.data.createdAt);
-              const dateB = b.data.createdAt.toDate ? b.data.createdAt.toDate() : new Date(b.data.createdAt);
+            if (a.createdAt && b.createdAt) {
+              const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+              const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
               return dateB.getTime() - dateA.getTime(); // ახლიდან ძველისკენ დალაგება
             }
             return 0;
           });
         
-        console.log(`Found ${sortedDocs.length} wine documents`);
+        console.log(`Found ${sortedWines.length} wine documents`);
         
         // ყველა url-ის დამუშავება
         const imagePromises: Promise<string | null>[] = [];
-        sortedDocs.forEach(({ id, data }) => {
-          console.log(`Processing wine document ${id}: URL=${data.url}`);
+        sortedWines.forEach((wine) => {
+          console.log(`Processing wine document ${wine.id}: URL=${wine.url}`);
           imagePromises.push(
-            getProperImageUrl(data.url)
+            getProperImageUrl(wine.url)
               .then(processedUrl => {
                 if (processedUrl) {
-                  console.log(`Document ${id}: URL processed successfully:`, processedUrl);
+                  console.log(`Wine ${wine.id}: URL processed successfully:`, processedUrl);
                 } else {
-                  console.log(`Document ${id}: Invalid URL:`, data.url);
+                  console.log(`Wine ${wine.id}: Invalid URL:`, wine.url);
                 }
                 return processedUrl;
               })
@@ -169,7 +169,7 @@ export default function WinesPage() {
                 GALLERY
               </a>
               <a href="/fine-dining" className="text-sm hover:text-orange-400 transition-colors">
-                FINE DINING
+                RESTAURANT
               </a>
               <a href="/wines" className="text-sm text-orange-400">
                 WINE

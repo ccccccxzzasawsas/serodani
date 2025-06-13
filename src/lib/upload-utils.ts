@@ -1,5 +1,5 @@
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
-import { doc, setDoc, collection, addDoc, updateDoc, getDoc } from "firebase/firestore"
+import { doc, setDoc, collection, addDoc, updateDoc, getDoc, deleteDoc } from "firebase/firestore"
 import { storage, db } from "./firebase"
 import { v4 as uuidv4 } from "uuid"
 import imageCompression from "browser-image-compression"
@@ -88,6 +88,45 @@ export async function deleteImage(url: string): Promise<void> {
   }
 }
 
+// Delete image from storage and its metadata from Firestore
+export async function deleteImageWithMetadata(
+  collection: string,
+  documentId: string,
+  imageUrl: string
+): Promise<void> {
+  try {
+    // 1. წაშალე დოკუმენტი Firestore-დან
+    const docRef = doc(db, collection, documentId);
+    await deleteDoc(docRef);
+    
+    // 2. წაშალე სურათი Storage-დან
+    try {
+      // თუ URL არის სრული URL და არა Storage path
+      if (imageUrl.startsWith('https://')) {
+        // გარდავქმნათ URL Storage path-ად
+        const urlObj = new URL(imageUrl);
+        const pathSegments = urlObj.pathname.split('/');
+        const bucket = pathSegments[1];
+        const encodedPath = pathSegments.slice(2).join('/');
+        const path = decodeURIComponent(encodedPath);
+        
+        const storageRef = ref(storage, path);
+        await deleteObject(storageRef);
+      } else {
+        // თუ უკვე Storage path-ია
+        const storageRef = ref(storage, imageUrl);
+        await deleteObject(storageRef);
+      }
+    } catch (storageError) {
+      console.error("Error deleting image from storage:", storageError);
+      // გავაგრძელოთ მაინც, რადგან Firestore დოკუმენტი უკვე წაშლილია
+    }
+  } catch (error) {
+    console.error("Error deleting image with metadata:", error);
+    throw error;
+  }
+}
+
 // Save image metadata to Firestore
 export async function saveImageMetadata(
   section: string,
@@ -130,16 +169,25 @@ export async function updateSectionContent(section: string, content: { [key: str
 // Add a new room
 export async function addRoom(roomData: {
   name: string
-  description: string
+  description?: string
   price: number
+  beds?: number
+  extraBeds?: number
+  minBookingBeds?: number
+  bedPrices?: { beds: number; price: number }[]
   imageUrl: string
   images?: { url: string; position: number }[]
+  position?: number
 }): Promise<string> {
   try {
     const docRef = await addDoc(collection(db, "rooms"), {
       ...roomData,
       // თუ სურათების მასივი არ არის მოცემული, მაშინ შევქმნათ ერთელემენტიანი მასივი მთავარი სურათით
       images: roomData.images || [{ url: roomData.imageUrl, position: 0 }],
+      position: roomData.position || 0,
+      beds: roomData.beds || 2, // ნაგულისხმევად 2 საწოლი
+      extraBeds: roomData.extraBeds || 0, // ნაგულისხმევად 0 დამატებითი საწოლი
+      minBookingBeds: roomData.minBookingBeds || 1, // ნაგულისხმევად მინიმუმ 1 საწოლი
       createdAt: new Date(),
     })
     return docRef.id
@@ -177,4 +225,54 @@ export async function updateGuestReviewImage(imageUrl: string): Promise<void> {
 // Update rooms page hero image
 export async function updateRoomsHeroImage(imageUrl: string): Promise<void> {
   await updateSectionContent("roomsHero", { imageUrl })
+}
+
+// Update room position in Firestore
+export async function updateRoomPosition(roomId: string, position: number): Promise<void> {
+  try {
+    const docRef = doc(db, "rooms", roomId);
+    await updateDoc(docRef, { position });
+  } catch (error) {
+    console.error("Error updating room position:", error);
+    throw error;
+  }
+}
+
+// Update positions for all rooms in a batch, assigns sequential position numbers
+export async function reorderAllRoomPositions(roomIds: string[]): Promise<void> {
+  try {
+    // Update each room with its new position based on the array index
+    for (let i = 0; i < roomIds.length; i++) {
+      const docRef = doc(db, "rooms", roomIds[i]);
+      await updateDoc(docRef, { position: i });
+    }
+  } catch (error) {
+    console.error("Error reordering room positions:", error);
+    throw error;
+  }
+}
+
+// Update room price in Firestore
+export async function updateRoomPrice(roomId: string, newPrice: number): Promise<void> {
+  try {
+    const docRef = doc(db, "rooms", roomId);
+    await updateDoc(docRef, { price: newPrice });
+  } catch (error) {
+    console.error("Error updating room price:", error);
+    throw error;
+  }
+}
+
+// განაახლებს ოთახის ფასებს საწოლების რაოდენობის მიხედვით
+export async function updateRoomBedPrices(
+  roomId: string, 
+  bedPrices: { beds: number; price: number }[]
+): Promise<void> {
+  try {
+    const docRef = doc(db, "rooms", roomId);
+    await updateDoc(docRef, { bedPrices });
+  } catch (error) {
+    console.error("Error updating room bed prices:", error);
+    throw error;
+  }
 }

@@ -35,7 +35,7 @@ export default function ContactPage() {
                 GALLERY
               </a>
               <a href="/fine-dining" className="text-sm hover:text-orange-400 transition-colors">
-                FINE DINING
+                RESTAURANT
               </a>
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
                 WINE

@@ -28,3 +28,46 @@ Continue building your app on:
 2. Deploy your chats from the v0 interface
 3. Changes are automatically pushed to this repository
 4. Vercel deploys the latest version from this repository
+
+## ჯავშნის ფუნქციონალი
+
+საიტზე დამატებულია ორ-ეტაპიანი ჯავშნის სისტემა შემდეგი მახასიათებლებით:
+
+1. პირველი ეტაპი - თარიღების არჩევა და ოთახის შემოწმება
+   - თარიღების არჩევა
+   - საწოლების რაოდენობის არჩევა
+   - ალტერნატიული საწოლების შეთავაზება თუ არჩეული საწოლი არ არის ხელმისაწვდომი
+
+2. მეორე ეტაპი - პირადი ინფორმაცია და დადასტურება
+   - სახელი და გვარი
+   - ელ-ფოსტა და დადასტურების ველი
+   - ტელეფონის ნომერი
+   - ქვეყანა
+   - დამატებითი კომენტარი
+   - სრული ფასის ჩვენება
+
+ჯავშნის დადასტურების შემდეგ სისტემა ავტომატურად აგზავნის:
+1. დადასტურების მეილს მომხმარებლის ელფოსტაზე
+2. შეტყობინებას ადმინისტრატორისთვის
+
+### ელფოსტის კონფიგურაცია
+
+Firebase Functions-ის მეშვეობით ელფოსტის გასაგზავნად:
+
+1. შექმენით `.env` ფაილი `functions` საქაღალდეში `.env.example` ფაილის მიხედვით:
+   ```
+   EMAIL_USER=your-email@gmail.com
+   EMAIL_PASSWORD=your-app-password
+   ADMIN_EMAIL=admin@example.com
+   ```
+
+2. Google-ის ანგარიშისთვის აპლიკაციის პაროლის შექმნა:
+   - გახსენით [Google Account Security](https://myaccount.google.com/security)
+   - ჩართეთ 2-ფაქტორიანი ავთენტიფიკაცია
+   - შექმენით აპლიკაციის პაროლი "Mail" აპლიკაციისთვის
+   - გამოიყენეთ ეს პაროლი `EMAIL_PASSWORD` ველისთვის
+
+3. Firebase-ზე ფუნქციების განთავსებამდე, დააყენეთ გარემოს ცვლადები:
+   ```
+   firebase functions:config:set email.user="your-email@gmail.com" email.pass="your-app-password" admin.email="admin@example.com"
+   ```

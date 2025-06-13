@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth"
-import { User, X } from "lucide-react"
+import { User, X, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { Footer } from "@/components/Footer"
 import { collection, getDoc, doc, getDocs } from "firebase/firestore"
@@ -14,17 +14,20 @@ import { getDownloadURL, ref } from "firebase/storage"
 export default function FineDiningPage() {
   const { user, signOut } = useAuth()
   const [loading, setLoading] = useState(true)
+  const [heroImage, setHeroImage] = useState("")
+  const [diningImages, setDiningImages] = useState<string[]>([])
+  const [menuImage, setMenuImage] = useState("")
+  const [menuImages, setMenuImages] = useState<string[]>([])
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0)
+  const [selectedImageContext, setSelectedImageContext] = useState<'menu' | 'dining' | 'single'>('single')
+  const [currentMenuIndex, setCurrentMenuIndex] = useState(0)
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const [zoomPosition, setZoomPosition] = useState({ x: 0.5, y: 0.5 })
   const sliderTrackRef = useRef<HTMLDivElement>(null)
   const animationRef = useRef<number | null>(null)
+  const imageContainerRef = useRef<HTMLDivElement>(null)
   
-  // დეფოლტი სურათების პათები სანამ Firebase-დან ჩაიტვირთება
-  const [heroImage, setHeroImage] = useState<string | null>(null)
-  const [diningImages, setDiningImages] = useState<string[]>([])
-  
-  // მენიუს სურათი
-  const [menuImage, setMenuImage] = useState<string | null>(null)
-
   // ფუნქცია Firebase Storage URL-ის გასაწმენდად და დასაკონვერტირებლად
   const getProperImageUrl = async (url: string): Promise<string | null> => {
     // ვამოწმებთ Firebase Storage-ის URL-ს
@@ -137,15 +140,27 @@ export default function FineDiningPage() {
           setDiningImages([]);
         }
         
-        // მენიუს სურათი
+        // მენიუს სურათები
         const menuDoc = await getDoc(doc(db, "sections", "diningMenu"))
-        if (menuDoc.exists() && menuDoc.data().imageUrl) {
-          const menuUrl = await getProperImageUrl(menuDoc.data().imageUrl);
-          if (menuUrl) {
-            setMenuImage(menuUrl);
-            console.log("Menu image loaded from Firebase");
-          } else {
-            console.log("Menu image URL not valid, not displaying any menu image");
+        if (menuDoc.exists()) {
+          if (menuDoc.data().imageUrls && Array.isArray(menuDoc.data().imageUrls)) {
+            // ახალი ვერსია - მასივი
+            const menuUrls: string[] = [];
+            for (const url of menuDoc.data().imageUrls) {
+              const processedUrl = await getProperImageUrl(url);
+              if (processedUrl) menuUrls.push(processedUrl);
+            }
+            setMenuImages(menuUrls);
+            console.log(`Loaded ${menuUrls.length} menu images from Firebase`);
+          } else if (menuDoc.data().imageUrl) {
+            // ძველი ვერსია - ერთი სურათი
+            const menuUrl = await getProperImageUrl(menuDoc.data().imageUrl);
+            if (menuUrl) {
+              setMenuImage(menuUrl);
+              console.log("Menu image loaded from Firebase (legacy format)");
+            } else {
+              console.log("Menu image URL not valid, not displaying any menu image");
+            }
           }
         }
         
@@ -227,8 +242,12 @@ export default function FineDiningPage() {
   }, [loading, diningImages]);
 
   // გადიდების ფუნქციონალისთვის
-  const openModal = (imageUrl: string) => {
+  const openModal = (imageUrl: string, context: 'menu' | 'dining' | 'single' = 'single', index: number = 0) => {
     setSelectedImage(imageUrl);
+    setSelectedImageContext(context);
+    setSelectedImageIndex(index);
+    // გადიდების რესეტი ყოველი ახალი ფოტოს გახსნისას
+    setZoomLevel(1);
     document.body.style.overflow = 'hidden'; // დავბლოკოთ სქროლი როცა მოდალი ღიაა
   }
 
@@ -237,6 +256,26 @@ export default function FineDiningPage() {
     document.body.style.overflow = 'auto'; // დავაბრუნოთ სქროლი როცა მოდალს დავხურავთ
   }
 
+  // ფოტოს გადიდების ფუნქციონალი
+  const handleImageZoom = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return;
+    
+    // გამოვითვალოთ ზუსტი კლიკის პოზიცია სურათზე
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    
+    if (zoomLevel === 1) {
+      // გავადიდოთ 2.5-ჯერ
+      setZoomLevel(2.5);
+      setZoomPosition({ x, y });
+    } else {
+      // თუ უკვე გადიდებულია, გავაუქმოთ გადიდება
+      setZoomLevel(1);
+      setZoomPosition({ x: 0.5, y: 0.5 });
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut()
@@ -244,6 +283,44 @@ export default function FineDiningPage() {
       console.error("Error signing out:", error)
     }
   }
+
+  // ფუნქცია მენიუს ფოტოების სანავიგაციოდ
+  const nextMenuImage = () => {
+    if (menuImages.length > 0) {
+      setCurrentMenuIndex((prev) => (prev + 1) % menuImages.length);
+    }
+  };
+
+  const prevMenuImage = () => {
+    if (menuImages.length > 0) {
+      setCurrentMenuIndex((prev) => (prev - 1 + menuImages.length) % menuImages.length);
+    }
+  };
+
+  // მოდალში ფოტოების ნავიგაციისთვის
+  const nextModalImage = () => {
+    if (selectedImageContext === 'menu') {
+      const newIndex = (selectedImageIndex + 1) % menuImages.length;
+      setSelectedImageIndex(newIndex);
+      setSelectedImage(menuImages[newIndex]);
+    } else if (selectedImageContext === 'dining') {
+      const newIndex = (selectedImageIndex + 1) % diningImages.length;
+      setSelectedImageIndex(newIndex);
+      setSelectedImage(diningImages[newIndex]);
+    }
+  };
+
+  const prevModalImage = () => {
+    if (selectedImageContext === 'menu') {
+      const newIndex = (selectedImageIndex - 1 + menuImages.length) % menuImages.length;
+      setSelectedImageIndex(newIndex);
+      setSelectedImage(menuImages[newIndex]);
+    } else if (selectedImageContext === 'dining') {
+      const newIndex = (selectedImageIndex - 1 + diningImages.length) % diningImages.length;
+      setSelectedImageIndex(newIndex);
+      setSelectedImage(diningImages[newIndex]);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -262,7 +339,7 @@ export default function FineDiningPage() {
                 GALLERY
               </a>
               <a href="/fine-dining" className="text-sm text-orange-400">
-                FINE DINING
+                RESTAURANT
               </a>
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
                 WINE
@@ -352,7 +429,7 @@ export default function FineDiningPage() {
                           key={`${arrayIndex}-${i}`}
                           className="relative flex-shrink-0 h-[280px] cursor-pointer"
                           style={{ width: "350px", marginRight: "5px" }}
-                          onClick={() => openModal(src)}
+                          onClick={() => openModal(src, 'dining', i)}
                         >
                           <Image
                             src={src}
@@ -404,58 +481,191 @@ export default function FineDiningPage() {
       <section className="py-16 bg-gray-100">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-8">Check our Menu</h2>
-          <div className="max-w-4xl mx-auto">
-            {menuImage && (
+
+          {/* მენიუს სლაიდერი - მარტივი, ცენტრში და დიდი */}
+          {menuImages.length > 0 ? (
+            <div className="relative max-w-5xl mx-auto">
+              {/* სლაიდერის მთავარი კონტეინერი */}
+              <div className="overflow-hidden">
+                <div 
+                  className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${currentMenuIndex * 100}%)` }}
+                >
+                  {menuImages.map((image, index) => (
+                    <div 
+                      key={index} 
+                      className="flex-none w-full flex justify-center items-center"
+                      onClick={() => openModal(image, 'menu', index)}
+                    >
+                      <div className="relative h-[75vh] w-full max-w-4xl cursor-pointer">
+                        <Image
+                          src={image}
+                          alt={`Restaurant Menu ${index + 1}`}
+                          fill
+                          className="object-contain"
+                          loading="lazy"
+                          sizes="(max-width: 768px) 90vw, 80vw"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* სანავიგაციო ღილაკები */}
+              {menuImages.length > 1 && (
+                <>
+                  <button 
+                    onClick={prevMenuImage}
+                    className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full z-10"
+                    aria-label="Previous menu image"
+                  >
+                    <ChevronLeft className="h-8 w-8" />
+                  </button>
+                  <button 
+                    onClick={nextMenuImage}
+                    className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full z-10"
+                    aria-label="Next menu image"
+                  >
+                    <ChevronRight className="h-8 w-8" />
+                  </button>
+                </>
+              )}
+
+              {/* ინდიკატორები */}
+              {menuImages.length > 1 && (
+                <div className="flex justify-center space-x-2 mt-4">
+                  {menuImages.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentMenuIndex(index)}
+                      className={`w-3 h-3 rounded-full ${
+                        index === currentMenuIndex ? 'bg-orange-500' : 'bg-gray-300'
+                      }`}
+                      aria-label={`Go to menu image ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : menuImage ? (
+            // ძველი ვერსია - ერთი მენიუს ფოტო
+            <div className="flex justify-center">
               <div 
-                className="relative rounded-lg overflow-hidden cursor-pointer"
+                className="relative cursor-pointer max-w-4xl"
                 onClick={() => openModal(menuImage)}
               >
                 <Image
                   src={menuImage}
                   alt="Restaurant Menu"
-                  width={800}
-                  height={600}
-                  className="object-contain mx-auto hover:scale-105 transition-transform duration-300"
+                  width={1000}
+                  height={1400}
+                  className="object-contain mx-auto"
                   loading="lazy"
                   onError={(e) => {
-                    // შეცდომების დამალვა კონსოლიდან
                     e.currentTarget.style.display = 'none';
                   }}
                 />
               </div>
-            )}
-          </div>
+            </div>
+          ) : null}
         </div>
       </section>
       
       {/* Modal for full-screen image */}
       {selectedImage && (
         <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
           onClick={closeModal}
         >
           <div 
-            className="relative w-[90vw] h-[90vh] max-w-7xl"
-            onClick={(e) => e.stopPropagation()}
+            ref={imageContainerRef}
+            className={`relative w-[90vw] h-[90vh] max-w-7xl overflow-hidden ${zoomLevel > 1 ? '' : 'cursor-zoom-in'}`}
+            onClick={(e) => {
+              // მხოლოდ მაშინ დავხუროთ მოდალი, თუ გარე კონტეინერზე დავაჭირეთ
+              e.stopPropagation();
+              handleImageZoom(e);
+            }}
           >
-            <Image
-              src={selectedImage}
-              alt="Full view image"
-              fill
-              className="object-contain"
-              sizes="90vw"
-              onError={(e) => {
-                // შეცდომების დამალვა კონსოლიდან
-                e.currentTarget.style.display = 'none';
-                closeModal();
+            <div
+              style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: `${zoomPosition.x * 100}% ${zoomPosition.y * 100}%`,
+                transition: 'transform 0.2s ease-out'
               }}
-            />
+            >
+              <Image
+                src={selectedImage}
+                alt="Full view image"
+                fill
+                className="object-contain select-none"
+                sizes="90vw"
+                priority={true}
+                quality={90}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  closeModal();
+                }}
+              />
+            </div>
+            
+            {/* მოდალის ნავიგაციის ღილაკები */}
+            {selectedImageContext !== 'single' && (
+              <>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    prevModalImage();
+                    // გავაუქმოთ ზუმი ფოტოს ცვლილებისას
+                    setZoomLevel(1);
+                  }}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full z-10"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-8 w-8" />
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nextModalImage();
+                    // გავაუქმოთ ზუმი ფოტოს ცვლილებისას
+                    setZoomLevel(1);
+                  }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full z-10"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-8 w-8" />
+                </button>
+              </>
+            )}
+            
             <button
               className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white"
-              onClick={closeModal}
+              onClick={(e) => {
+                e.stopPropagation();
+                closeModal();
+              }}
             >
               <X className="w-6 h-6" />
             </button>
+            
+            {/* ფოტოს ინდექსი/სულ */}
+            {selectedImageContext === 'menu' && menuImages.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white py-1 px-3 rounded-full">
+                {selectedImageIndex + 1} / {menuImages.length}
+              </div>
+            )}
+            {selectedImageContext === 'dining' && diningImages.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white py-1 px-3 rounded-full">
+                {selectedImageIndex + 1} / {diningImages.length}
+              </div>
+            )}
           </div>
         </div>
       )}

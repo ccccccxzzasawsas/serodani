@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { uploadImage, addRoom } from "@/lib/upload-utils"
-import { Loader2, XCircle, ArrowUp, ArrowDown } from "lucide-react"
+import { Loader2, XCircle, ArrowUp, ArrowDown, Plus, Minus } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 
 interface RoomFormProps {
@@ -24,7 +24,11 @@ export function RoomForm({ onRoomAdded }: RoomFormProps) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
+  const [beds, setBeds] = useState("2") // ნაგულისხმევად 2 საწოლი
+  const [extraBeds, setExtraBeds] = useState("0") // ნაგულისხმევად 0 დამატებითი საწოლი
+  const [minBookingBeds, setMinBookingBeds] = useState("1") // ნაგულისხმევად მინიმუმ 1 საწოლი
   const [images, setImages] = useState<ImageFile[]>([])
+  const [bedPrices, setBedPrices] = useState<{ beds: number; price: number }[]>([]) // საწოლების ფასები
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -68,15 +72,15 @@ export function RoomForm({ onRoomAdded }: RoomFormProps) {
   }
   
   const moveImageUp = (index: number) => {
-    if (index === 0) return
+    if (index === 0) return // პირველი სურათი უკვე პირველ პოზიციაზეა
     
     const updatedImages = [...images]
-    // გავცვალოთ მიმდინარე ფოტოსა და მის წინა ფოტოს პოზიციები
+    // გავცვალოთ მიმდინარე სურათი წინა სურათთან
     const temp = updatedImages[index]
     updatedImages[index] = updatedImages[index - 1]
     updatedImages[index - 1] = temp
     
-    // განვაახლოთ პოზიციების ნომრები
+    // განვაახლოთ პოზიციები
     const reorderedImages = updatedImages.map((img, i) => ({
       ...img,
       position: i
@@ -86,21 +90,66 @@ export function RoomForm({ onRoomAdded }: RoomFormProps) {
   }
   
   const moveImageDown = (index: number) => {
-    if (index === images.length - 1) return
+    if (index === images.length - 1) return // ბოლო სურათი უკვე ბოლო პოზიციაზეა
     
     const updatedImages = [...images]
-    // გავცვალოთ მიმდინარე ფოტოსა და მის შემდეგ ფოტოს პოზიციები
+    // გავცვალოთ მიმდინარე სურათი შემდეგ სურათთან
     const temp = updatedImages[index]
     updatedImages[index] = updatedImages[index + 1]
     updatedImages[index + 1] = temp
     
-    // განვაახლოთ პოზიციების ნომრები
+    // განვაახლოთ პოზიციები
     const reorderedImages = updatedImages.map((img, i) => ({
       ...img,
       position: i
     }))
     
     setImages(reorderedImages)
+  }
+
+  // ახალი საწოლი-ფასის წყვილის დამატება
+  const addBedPrice = () => {
+    // ვიპოვოთ უმაღლესი შესაძლებელი საწოლების რაოდენობა (ძირითადი + დამატებითი)
+    const maxPossibleBeds = Number.parseInt(beds) + Number.parseInt(extraBeds);
+    const minPossibleBeds = Number.parseInt(minBookingBeds);
+    
+    // თუ ყველა შესაძლო საწოლის ვარიანტი უკვე დამატებულია
+    const existingBedNumbers = bedPrices.map(bp => bp.beds);
+    
+    // ვიპოვოთ პირველი ხელმისაწვდომი საწოლების რაოდენობა
+    let nextBedNumber = minPossibleBeds;
+    while (existingBedNumbers.includes(nextBedNumber) && nextBedNumber <= maxPossibleBeds) {
+      nextBedNumber++;
+    }
+    
+    if (nextBedNumber <= maxPossibleBeds) {
+      // ვიპოვოთ ნაგულისხმევი ფასი ახალი საწოლისთვის
+      let suggestedPrice = Number.parseFloat(price) || 0;
+      
+      // თუ უკვე გვაქვს ფასები, შეგვიძლია გამოვიყენოთ ბოლო ფასი როგორც საწყისი
+      if (bedPrices.length > 0) {
+        // ვსორტავთ მასივს საწოლების რაოდენობის მიხედვით
+        const sortedPrices = [...bedPrices].sort((a, b) => a.beds - b.beds);
+        // ვიღებთ ბოლო (უდიდესი საწოლების რაოდენობის) ფასს
+        suggestedPrice = sortedPrices[sortedPrices.length - 1].price;
+      }
+      
+      setBedPrices([...bedPrices, { beds: nextBedNumber, price: suggestedPrice }]);
+    }
+  }
+
+  // საწოლი-ფასის წყვილის წაშლა
+  const removeBedPrice = (index: number) => {
+    const updatedPrices = [...bedPrices];
+    updatedPrices.splice(index, 1);
+    setBedPrices(updatedPrices);
+  }
+
+  // საწოლი-ფასის წყვილის განახლება
+  const updateBedPriceValue = (index: number, field: 'beds' | 'price', value: number) => {
+    const updatedPrices = [...bedPrices];
+    updatedPrices[index][field] = value;
+    setBedPrices(updatedPrices);
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,10 +165,57 @@ export function RoomForm({ onRoomAdded }: RoomFormProps) {
         return
       }
 
-      if (!name || !description || !price) {
-        setError("გთხოვთ, შეავსოთ ყველა ველი")
+      if (!name || !price) {
+        setError("გთხოვთ, შეავსოთ აუცილებელი ველები (სახელი და ფასი)")
         setLoading(false)
         return
+      }
+      
+      // საწოლების რაოდენობის ვალიდაცია
+      const bedsNum = Number.parseInt(beds);
+      const extraBedsNum = Number.parseInt(extraBeds);
+      const minBookingBedsNum = Number.parseInt(minBookingBeds);
+      
+      if (isNaN(bedsNum) || bedsNum < 1) {
+        setError("საწოლების რაოდენობა უნდა იყოს მინიმუმ 1")
+        setLoading(false)
+        return
+      }
+      
+      // ვამოწმებთ, რომ მინიმალური დასაჯავშნი საწოლების რაოდენობა არ აღემატებოდეს ძირითადი საწოლების რაოდენობას
+      if (minBookingBedsNum > bedsNum) {
+        setError(`მინიმალური დასაჯავშნი საწოლების რაოდენობა (${minBookingBedsNum}) არ უნდა აღემატებოდეს ძირითადი საწოლების რაოდენობას (${bedsNum})`)
+        setLoading(false)
+        return
+      }
+      
+      // შევამოწმოთ საწოლების რაოდენობები
+      if (bedPrices.length > 0) {
+        const maxPossibleBeds = bedsNum + extraBedsNum;
+        
+        // შევამოწმოთ საწოლების რაოდენობები
+        const invalidBeds = bedPrices.some(bp => {
+          return isNaN(bp.beds) || 
+            bp.beds < minBookingBedsNum || 
+            bp.beds > maxPossibleBeds;
+        });
+        
+        if (invalidBeds) {
+          setError("საწოლების რაოდენობა უნდა იყოს მინიმუმ " + 
+            minBookingBedsNum + 
+            " და მაქსიმუმ " + maxPossibleBeds);
+          setLoading(false);
+          return;
+        }
+        
+        // შევამოწმოთ დუბლიკატები საწოლების რაოდენობაში
+        const bedNumbers = bedPrices.map(bp => bp.beds);
+        const uniqueBeds = new Set(bedNumbers);
+        if (bedNumbers.length !== uniqueBeds.size) {
+          setError("საწოლების რაოდენობა არ უნდა მეორდებოდეს");
+          setLoading(false);
+          return;
+        }
       }
 
       // Upload all images
@@ -135,19 +231,34 @@ export function RoomForm({ onRoomAdded }: RoomFormProps) {
       // მთავარი სურათი იქნება პირველი (position = 0)
       const mainImageUrl = uploadedImages.find(img => img.position === 0)?.url || uploadedImages[0].url
 
+      // ახალი ოთახი ყოველთვის პირველ პოზიციაზე იქნება, 
+      // სხვა ოთახების გადანომრვა მოხდება fetchRooms-ის დროს
+      
+      // დავალაგოთ bedPrices საწოლების რაოდენობის მიხედვით
+      const sortedBedPrices = [...bedPrices].sort((a, b) => a.beds - b.beds);
+      
       // Add the room to Firestore
       await addRoom({
         name,
         description,
         price: Number.parseFloat(price),
+        beds: Number.parseInt(beds),
+        extraBeds: Number.parseInt(extraBeds),
+        minBookingBeds: Number.parseInt(minBookingBeds),
         imageUrl: mainImageUrl,
-        images: uploadedImages
+        images: uploadedImages,
+        position: 0, // ახალი ოთახი ყოველთვის პირველ პოზიციაზე გამოჩნდება
+        bedPrices: sortedBedPrices.length > 0 ? sortedBedPrices : undefined
       })
 
       // Reset form
       setName("")
       setDescription("")
       setPrice("")
+      setBeds("2")
+      setExtraBeds("0")
+      setMinBookingBeds("1")
+      setBedPrices([])
       
       // გავაუქმოთ ყველა preview URL
       images.forEach(img => URL.revokeObjectURL(img.preview))
@@ -197,32 +308,152 @@ export function RoomForm({ onRoomAdded }: RoomFormProps) {
 
         <div>
           <Label htmlFor="room-description" className="block mb-2">
-            აღწერა
+            აღწერა (არააუცილებელი)
           </Label>
           <Textarea
             id="room-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="კომფორტული ოთახი ორადგილიანი საწოლით და მთის ხედით..."
-            required
             rows={3}
           />
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="room-price" className="block mb-2">
+              ფასი (ლარი)
+            </Label>
+            <Input
+              id="room-price"
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="250"
+              required
+              min="0"
+              step="0.01"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="room-beds" className="block mb-2">
+              საწოლების რაოდენობა
+            </Label>
+            <Input
+              id="room-beds"
+              type="number"
+              value={beds}
+              onChange={(e) => setBeds(e.target.value)}
+              placeholder="2"
+              required
+              min="1"
+              max="10"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="room-extra-beds" className="block mb-2">
+              დამატებითი საწოლები
+            </Label>
+            <Input
+              id="room-extra-beds"
+              type="number"
+              value={extraBeds}
+              onChange={(e) => setExtraBeds(e.target.value)}
+              placeholder="0"
+              min="0"
+              max="5"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              დამატებითი საწოლების რაოდენობა (მაგ: 4+2 extra bed)
+            </p>
+          </div>
+          
+          <div>
+            <Label htmlFor="room-min-booking-beds" className="block mb-2">
+              მინიმალური დასაჯავშნი საწოლები
+            </Label>
+            <Input
+              id="room-min-booking-beds"
+              type="number"
+              value={minBookingBeds}
+              onChange={(e) => setMinBookingBeds(e.target.value)}
+              placeholder="1"
+              min="1"
+              max="10"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              მინიმუმ რამდენი საწოლის დაჯავშნა არის შესაძლებელი
+            </p>
+          </div>
+        </div>
+
+        {/* საწოლების ფასები */}
         <div>
-          <Label htmlFor="room-price" className="block mb-2">
-            ფასი (ლარი)
-          </Label>
-          <Input
-            id="room-price"
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="250"
-            required
-            min="0"
-            step="0.01"
-          />
+          <div className="flex justify-between items-center mb-2">
+            <Label htmlFor="room-bed-prices" className="block">
+              საწოლების ფასები (არააუცილებელი)
+            </Label>
+            <Button 
+              type="button" 
+              size="sm" 
+              variant="outline"
+              onClick={addBedPrice}
+            >
+              <Plus className="h-4 w-4 mr-1" /> დამატება
+            </Button>
+          </div>
+          
+          <p className="text-xs text-gray-500 mb-2">
+            შეგიძლიათ მიუთითოთ განსხვავებული ფასები სხვადასხვა რაოდენობის საწოლებისთვის
+          </p>
+          
+          {bedPrices.length === 0 ? (
+            <p className="text-sm text-gray-500 italic">
+              ფასები საწოლების მიხედვით არ არის განსაზღვრული. გამოყენებული იქნება ძირითადი ფასი.
+            </p>
+          ) : (
+            <div className="space-y-2 border rounded-md p-3 bg-gray-50">
+              {bedPrices.map((bedPrice, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="w-20">
+                    <Input
+                      type="number"
+                      value={bedPrice.beds}
+                      min={Number.parseInt(minBookingBeds)}
+                      max={Number.parseInt(beds) + Number.parseInt(extraBeds)}
+                      onChange={(e) => updateBedPriceValue(index, 'beds', parseInt(e.target.value))}
+                      className="h-8"
+                    />
+                  </div>
+                  <span className="text-sm">საწოლი</span>
+                  <div className="flex-1">
+                    <Input
+                      type="number"
+                      value={bedPrice.price}
+                      min={0}
+                      step="0.01"
+                      onChange={(e) => updateBedPriceValue(index, 'price', parseFloat(e.target.value))}
+                      className="h-8"
+                    />
+                  </div>
+                  <span className="text-sm">ლარი</span>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => removeBedPrice(index)}
+                    className="h-8 w-8"
+                  >
+                    <Minus className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>

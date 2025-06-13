@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AdminManagement } from "@/components/admin-management"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Home, ImageIcon, Bed, UtensilsCrossed, Wine, ArrowRight, Users } from "lucide-react"
+import { Home, ImageIcon, Bed, UtensilsCrossed, Wine, ArrowRight, Users, Calendar } from "lucide-react"
 
 export default function AdminDashboardPage() {
   return (
@@ -52,6 +52,26 @@ export default function AdminDashboardPage() {
                   დაამატეთ, შეცვალეთ ან წაშალეთ ოთახები ფოტოებით, აღწერილობებითა და ფასებით.
                 </p>
                 <Link href="/admin/rooms">
+                  <Button variant="outline" className="w-full">
+                    მართვა
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center">
+                  <Calendar className="mr-2 h-5 w-5 text-orange-500" />
+                  ჯავშნები
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  ნახეთ და მართეთ ოთახების ჯავშნები.
+                </p>
+                <Link href="/admin/dashboard/bookings">
                   <Button variant="outline" className="w-full">
                     მართვა
                     <ArrowRight className="ml-2 h-4 w-4" />

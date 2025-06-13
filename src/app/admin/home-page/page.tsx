@@ -12,6 +12,14 @@ import {
   updateSectionContent,
   updateGuestReviewImage,
 } from "@/lib/upload-utils"
+import {
+  updateHeroSectionRealtime,
+  updateSliderImagesRealtime,
+  updateStoryImagesRealtime,
+  updateLargePhotoRealtime,
+  updateGuestReviewImageRealtime,
+  saveSectionToRealtime,
+} from "@/lib/realtimeDb"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 
@@ -37,6 +45,7 @@ export default function AdminHomePage() {
   const handleHeroUpload = async (url: string) => {
     try {
       await updateHeroSection(url)
+      await updateHeroSectionRealtime(url)
       setHeroSuccess(true)
     } catch (error) {
       console.error("Error updating hero section:", error)
@@ -48,6 +57,7 @@ export default function AdminHomePage() {
       const newUrls = [...sliderUrls, url]
       setSliderUrls(newUrls)
       await updateSliderImages(newUrls)
+      await updateSliderImagesRealtime(newUrls)
       setSliderSuccess(true)
     } catch (error) {
       console.error("Error updating slider images:", error)
@@ -62,6 +72,7 @@ export default function AdminHomePage() {
       // Only update if we have 3 images
       if (newUrls.length <= 3) {
         await updateStoryImages(newUrls)
+        await updateStoryImagesRealtime(newUrls)
         setStorySuccess(true)
       }
     } catch (error) {
@@ -72,6 +83,7 @@ export default function AdminHomePage() {
   const handleLargePhotoUpload = async (url: string) => {
     try {
       await updateLargePhoto(url)
+      await updateLargePhotoRealtime(url)
       setLargePhotoSuccess(true)
     } catch (error) {
       console.error("Error updating large photo:", error)
@@ -81,6 +93,7 @@ export default function AdminHomePage() {
   const handleGuestReviewUpload = async (url: string) => {
     try {
       await updateGuestReviewImage(url)
+      await updateGuestReviewImageRealtime(url)
       setGuestReviewSuccess(true)
     } catch (error) {
       console.error("Error updating guest review image:", error)
@@ -90,6 +103,7 @@ export default function AdminHomePage() {
   const handleSeeDoUpload = async (url: string) => {
     try {
       await updateSectionContent("seeDo", { imageUrl: url })
+      await saveSectionToRealtime("seeDo", { imageUrl: url })
       // Success handling
     } catch (error) {
       console.error("Error updating See & Do section:", error)

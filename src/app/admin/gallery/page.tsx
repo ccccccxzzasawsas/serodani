@@ -3,21 +3,35 @@
 import { useState, useEffect } from "react"
 import { UploadForm } from "@/components/upload-form"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { saveImageMetadata } from "@/lib/upload-utils"
+import { saveImageMetadata, deleteImageWithMetadata } from "@/lib/upload-utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle2, Trash2 } from "lucide-react"
-import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore"
+import { CheckCircle2, Trash2, AlertTriangle } from "lucide-react"
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { getDownloadURL, ref } from "firebase/storage"
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog"
+import { toast } from "@/components/ui/use-toast"
 
 export default function AdminGalleryPage() {
   const [success, setSuccess] = useState(false)
   const [heroSuccess, setHeroSuccess] = useState(false)
   const [currentHeroImage, setCurrentHeroImage] = useState("")
+  const [currentHeroImageId, setCurrentHeroImageId] = useState("")
   const [galleryImages, setGalleryImages] = useState<{id: string, url: string, createdAt: Date}[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [imageToDelete, setImageToDelete] = useState<{id: string, url: string, type: 'gallery' | 'hero'} | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   
   // ფუნქცია Firebase Storage URL-ის გასაწმენდად და დასაკონვერტირებლად
   const getProperImageUrl = async (url: string): Promise<string | null> => {
@@ -49,6 +63,7 @@ export default function AdminGalleryPage() {
           const heroUrl = await getProperImageUrl(heroDoc.data().imageUrl);
           if (heroUrl) {
             setCurrentHeroImage(heroUrl);
+            setCurrentHeroImageId("galleryHero");
           }
         }
         
@@ -123,6 +138,49 @@ export default function AdminGalleryPage() {
     }
   }
 
+  const handleDeleteImage = (id: string, url: string, type: 'gallery' | 'hero') => {
+    setImageToDelete({ id, url, type });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteImage = async () => {
+    if (!imageToDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      if (imageToDelete.type === 'gallery') {
+        await deleteImageWithMetadata('gallery', imageToDelete.id, imageToDelete.url);
+        setGalleryImages(galleryImages.filter(img => img.id !== imageToDelete.id));
+        toast({
+          title: "სურათი წაიშალა",
+          description: "გალერიის სურათი წარმატებით წაიშალა",
+        });
+      } else if (imageToDelete.type === 'hero') {
+        // ჰერო სურათის შემთხვევაში, მხოლოდ ვშლით მიმთითებელს Firestore-დან
+        await setDoc(doc(db, "sections", "galleryHero"), {
+          imageUrl: "",
+          updatedAt: new Date().toISOString(),
+        });
+        setCurrentHeroImage("");
+        toast({
+          title: "ჰერო სურათი წაიშალა",
+          description: "გალერიის ჰერო სურათი წარმატებით წაიშალა",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      toast({
+        title: "შეცდომა",
+        description: "სურათის წაშლა ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
+      setDeleteDialogOpen(false);
+      setImageToDelete(null);
+    }
+  };
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8">Manage Gallery</h1>
@@ -143,13 +201,23 @@ export default function AdminGalleryPage() {
           {currentHeroImage && (
             <div className="mb-6">
               <h3 className="text-sm font-medium mb-2">Current Hero Image:</h3>
-              <div className="relative h-48 w-full rounded-md overflow-hidden">
+              <div className="relative h-48 w-full rounded-md overflow-hidden group">
                 <Image 
                   src={currentHeroImage}
                   alt="Current gallery hero image"
                   fill
                   className="object-cover"
                 />
+                <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => handleDeleteImage(currentHeroImageId, currentHeroImage, 'hero')}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    წაშლა
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -215,9 +283,14 @@ export default function AdminGalleryPage() {
                           <p className="text-sm">
                             {new Date(image.createdAt).toLocaleDateString()}
                           </p>
-                          {/* აქ შეგვიძლია დავამატოთ წაშლის ღილაკი */}
-                          <Button size="sm" variant="destructive" className="mt-2">
-                            <Trash2 className="h-4 w-4" />
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            className="mt-2"
+                            onClick={() => handleDeleteImage(image.id, image.url, 'gallery')}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            წაშლა
                           </Button>
                         </div>
                       </div>
@@ -233,6 +306,52 @@ export default function AdminGalleryPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>სურათის წაშლა</DialogTitle>
+            <DialogDescription>
+              დარწმუნებული ხართ, რომ გსურთ სურათის წაშლა? ეს მოქმედება შეუქცევადია.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {imageToDelete && (
+            <div className="relative h-48 w-full rounded-md overflow-hidden my-4">
+              <Image 
+                src={imageToDelete.url}
+                alt="Image to delete"
+                fill
+                className="object-contain"
+              />
+            </div>
+          )}
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" disabled={deleteLoading}>გაუქმება</Button>
+            </DialogClose>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDeleteImage} 
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white mr-2" />
+                  მიმდინარეობს წაშლა...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  წაშლა
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

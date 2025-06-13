@@ -1,0 +1,51 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    
+    "bookings": {
+      ".read": true,
+      ".write": true,
+      
+      "$bookingId": {
+        ".validate": "newData.hasChildren(['roomId', 'checkInDate', 'checkOutDate', 'beds', 'status'])",
+        
+        // დაჯავშნის წამოწყების ვალიდაცია
+        ".write": "(!data.exists() && newData.exists()) || 
+                   (data.exists() && data.child('status').val() !== 'confirmed') || 
+                   (auth != null)",
+        
+        // ჯავშნის ვალიდაცია სტატუსის შემოწმებით
+        "$": {
+          ".validate": "true"
+        },
+        
+        // ჯავშნისას შევამოწმოთ, რომ არავინ აჯავშნას იგივე ოთახი იმავე პერიოდში
+        ".validate": "
+          // თუ ახალი დაჯავშნაა, გავაკეთოთ მკაცრი შემოწმება
+          !data.exists() ? (
+            // შევამოწმოთ ხელმისაწვდომობა
+            !root.child('bookings').orderByChild('roomId').equalTo(newData.child('roomId').val()).exists() || (
+              // თუ უკვე არსებობს ჯავშნები ამ ოთახზე, შევამოწმოთ ხელმისაწვდომობა თარიღების მიხედვით
+              root.child('bookings')
+                .orderByChild('roomId')
+                .equalTo(newData.child('roomId').val())
+                .filter(
+                  // ფილტრი გადაფარული თარიღების შესამოწმებლად:
+                  // 1. ჯავშანი არ არის გაუქმებული
+                  // 2. ჯავშნის თარიღები გადაფარულია
+                  'child(\"status\").val() !== \"cancelled\" && (
+                    // შემოწმება: ახალი check-in თარიღი იგივე ან მოგვიანებითაა, ვიდრე არსებული check-out
+                    (
+                      newData.child(\"checkInDate\").val() <= child(\"checkOutDate\").val() && 
+                      newData.child(\"checkOutDate\").val() >= child(\"checkInDate\").val()
+                    )
+                  )'
+                )
+                .count() === 0
+            )
+          ) : true"
+      }
+    }
+  }
+} 
