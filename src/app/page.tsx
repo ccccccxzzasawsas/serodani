@@ -106,8 +106,12 @@ export default function KviriaHotel() {
           if (galleryData && galleryData.images && galleryData.images.length > 0) {
             // ამოვიღოთ URL-ები გალერიის სურათებიდან
             const urls = galleryData.images.map((img: any) => img.url);
+            console.log("Gallery data from listener:", galleryData);
+            console.log("Extracted gallery URLs:", urls);
             setGalleryImages(urls);
             console.log("Gallery images loaded from Realtime Database:", urls.length);
+          } else {
+            console.log("Gallery listener received data but no valid images found:", galleryData);
           }
         });
         
@@ -136,10 +140,12 @@ export default function KviriaHotel() {
         // გალერიის სურათებს არ ვაიგნორებთ Realtime Database-დან
         if (galleryData && galleryData.images && galleryData.images.length > 0) {
           const urls = galleryData.images.map((img: any) => img.url);
+          console.log("Gallery data direct fetch:", galleryData);
+          console.log("Extracted gallery URLs (direct):", urls);
           setGalleryImages(urls);
           console.log("Gallery images loaded directly from Realtime Database:", urls.length);
         } else {
-          console.log("No gallery images found in Realtime Database");
+          console.log("No gallery images found in Realtime Database or invalid structure:", galleryData);
           
           // თუ Realtime Database-ში არ არის გალერიის სურათები, ვცადოთ Storage-დან წამოღება
           try {
@@ -203,6 +209,20 @@ export default function KviriaHotel() {
         // კოდის დანარჩენი ნაწილი უცვლელი...
         
         setLoading(false);
+        
+        // დავრწმუნდეთ, რომ galleryImages არ არის ცარიელი
+        if (galleryImages.length === 0) {
+          console.log("Setting default gallery images because galleryImages is empty");
+          // დეფოლტ სურათები, თუ ვერ ჩაიტვირთა
+          setGalleryImages([
+            '/gallery/1.jpg',
+            '/gallery/2.jpg',
+            '/gallery/3.jpg',
+            '/gallery/4.jpg',
+            '/gallery/5.jpg',
+            '/gallery/6.jpg',
+          ]);
+        }
         
         // გავასუფთავოთ ლისენერები, როცა კომპონენტი ანმაუნთდება
         return () => {
@@ -287,6 +307,24 @@ export default function KviriaHotel() {
       }
     };
   }, [sliderImages, loading]); // დავამატოთ loading უკან დამოკიდებულებებში
+
+  // დამატებითი useEffect გალერიის სურათების მონიტორინგისთვის
+  useEffect(() => {
+    console.log("Gallery images state changed:", galleryImages.length);
+    
+    // თუ გალერიის სურათები ცარიელია და ჩატვირთვა დასრულებულია, დავაყენოთ დეფოლტ სურათები
+    if (galleryImages.length === 0 && !loading) {
+      console.log("Setting fallback gallery images in monitoring effect");
+      setGalleryImages([
+        '/gallery/1.jpg',
+        '/gallery/2.jpg',
+        '/gallery/3.jpg',
+        '/gallery/4.jpg',
+        '/gallery/5.jpg',
+        '/gallery/6.jpg',
+      ]);
+    }
+  }, [galleryImages, loading]);
 
   const nextGalleryImage = () => {
     setCurrentGalleryIndex((prev) => {
