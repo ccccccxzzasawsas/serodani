@@ -185,8 +185,12 @@ export default function RoomsPage() {
                             </CarouselContent>
                             {roomImages.length > 1 && (
                               <>
-                                <CarouselPrevious className="left-2" onClick={(e) => e.stopPropagation()} />
-                                <CarouselNext className="right-2" onClick={(e) => e.stopPropagation()} />
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <CarouselPrevious className="left-2" />
+                                </div>
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <CarouselNext className="right-2" />
+                                </div>
                               </>
                             )}
                           </Carousel>
@@ -237,8 +241,12 @@ export default function RoomsPage() {
                             </CarouselContent>
                             {roomImages.length > 1 && (
                               <>
-                                <CarouselPrevious className="left-2" onClick={(e) => e.stopPropagation()} />
-                                <CarouselNext className="right-2" onClick={(e) => e.stopPropagation()} />
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <CarouselPrevious className="left-2" />
+                                </div>
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <CarouselNext className="right-2" />
+                                </div>
                               </>
                             )}
                           </Carousel>
@@ -254,9 +262,9 @@ export default function RoomsPage() {
       )}
 
       <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden bg-white border border-gray-200 shadow-xl">
           <DialogHeader>
-            <DialogTitle>{selectedRoomForImage?.name}</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">{selectedRoomForImage?.name}</DialogTitle>
             <DialogDescription>View photos of {selectedRoomForImage?.name}</DialogDescription>
           </DialogHeader>
           
@@ -265,11 +273,11 @@ export default function RoomsPage() {
               <Carousel className="w-full">
                 <CarouselContent>
                   {getOrderedImages(selectedRoomForImage).map((imageUrl, index) => (
-                        <CarouselItem key={index}>
+                    <CarouselItem key={index}>
                       <div className="p-1">
-                        <div className="relative rounded-lg overflow-hidden aspect-video h-[60vh]">
+                        <div className="relative rounded-lg overflow-hidden aspect-video h-[60vh] bg-gray-100">
                           <img src={imageUrl} alt={`${selectedRoomForImage.name} - Photo ${index + 1}`} className="w-full h-full object-contain" />
-                          <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">Photo {index + 1} / {getOrderedImages(selectedRoomForImage).length}</div>
+                          <div className="absolute bottom-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs">Photo {index + 1} / {getOrderedImages(selectedRoomForImage).length}</div>
                         </div>
                       </div>
                     </CarouselItem>
