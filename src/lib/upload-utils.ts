@@ -103,19 +103,56 @@ export async function deleteImageWithMetadata(
     try {
       // თუ URL არის სრული URL და არა Storage path
       if (imageUrl.startsWith('https://')) {
-        // გარდავქმნათ URL Storage path-ად
-        const urlObj = new URL(imageUrl);
-        const pathSegments = urlObj.pathname.split('/');
-        const bucket = pathSegments[1];
-        const encodedPath = pathSegments.slice(2).join('/');
-        const path = decodeURIComponent(encodedPath);
+        // გაასწორე ორმაგი ენკოდირება %252F → %2F
+        if (imageUrl.includes('%252F')) {
+          imageUrl = imageUrl.replace(/%252F/g, '%2F');
+        }
         
-        const storageRef = ref(storage, path);
-        await deleteObject(storageRef);
+        // დავლოგოთ URL დამუშავებამდე
+        console.log("Deleting image from URL before parsing:", imageUrl);
+        
+        try {
+          // გარდავქმნათ URL Storage path-ად
+          const urlObj = new URL(imageUrl);
+          const pathSegments = urlObj.pathname.split('/');
+          
+          // Firebase Storage URL ფორმატის დამუშავება: /v0/b/{bucket}/o/{encodedFilePath}
+          // პირველი პათი არის ცარიელი, მეორე არის v0, მესამე არის b, მეოთხე არის bucket
+          const bucket = pathSegments[3]; // ეს არის bucket-ის სახელი
+          
+          // o-ს შემდეგ მოდის ფაილის გზა
+          let path = '';
+          if (pathSegments.length > 5 && pathSegments[4] === 'o') {
+            // მთლიანი გზა o-ს შემდეგ, ჩვეულებრივ ერთი ელემენტია, მაგრამ შეიძლება მძიმით იყოს გამოყოფილი
+            const encodedPath = pathSegments.slice(5).join('/');
+            path = decodeURIComponent(encodedPath);
+            
+            // თუ URL-ს აქვს query პარამეტრები (alt=media, token და ა.შ.), მოვაშოროთ
+            const questionMarkIndex = path.indexOf('?');
+            if (questionMarkIndex !== -1) {
+              path = path.substring(0, questionMarkIndex);
+            }
+          }
+          
+          console.log("Extracted storage path:", path);
+          
+          if (path) {
+            const storageRef = ref(storage, path);
+            await deleteObject(storageRef);
+            console.log("Successfully deleted image from storage with path:", path);
+          } else {
+            console.error("Could not extract valid path from URL:", imageUrl);
+          }
+        } catch (urlError) {
+          console.error("Error parsing Firebase Storage URL:", urlError);
+          console.error("Problematic URL:", imageUrl);
+        }
       } else {
         // თუ უკვე Storage path-ია
+        console.log("Deleting image using direct storage path:", imageUrl);
         const storageRef = ref(storage, imageUrl);
         await deleteObject(storageRef);
+        console.log("Successfully deleted image using direct path");
       }
     } catch (storageError) {
       console.error("Error deleting image from storage:", storageError);

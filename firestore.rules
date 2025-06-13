@@ -2,18 +2,82 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // ფუნქცია: შეამოწმებს არის თუ არა მომხმარებელი ავტორიზებული
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // ფუნქცია: შეამოწმებს არის თუ არა მომხმარებელი ადმინისტრატორი
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.email)) ||
+        exists(/databases/$(database)/documents/users/$(request.auth.email)) && get(/databases/$(database)/documents/users/$(request.auth.email)).data.isAdmin == true
+      );
+    }
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
+    // ფუნქცია: შეამოწმებს არის თუ არა მომხმარებელი დოკუმენტის მფლობელი
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ადმინისტრატორთა სია - მხოლოდ ადმინებს შეუძლიათ კითხვა, მხოლოდ არსებულ ადმინებს შეუძლიათ ცვლილება
+    match /admins/{email} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // მომხმარებლები - ყველას შეუძლია წაკითხვა, მხოლოდ ადმინებს შეუძლიათ ცვლილება
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isOwner(userId);
+    }
+
+    // ოთახები - ყველას შეუძლია წაკითხვა, მხოლოდ ადმინებს შეუძლიათ ცვლილება
+    match /rooms/{roomId} {
+      allow read: if true;  // საჯარო წაკითხვა
+      allow write: if isAdmin();
+    }
+
+    // ჯავშნები - მხოლოდ ავტორიზებული მომხმარებლები ხედავენ თავის ჯავშნებს, ადმინებს ყველა ჯავშანი
+    match /bookings/{bookingId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+    }
+
+    // გალერეა - ყველას შეუძლია წაკითხვა, მხოლოდ ადმინებს შეუძლიათ ცვლილება
+    match /gallery/{imageId} {
+      allow read: if true;  // საჯარო წაკითხვა
+      allow write: if isAdmin();
+    }
+
+    // სექციები (მთავარი გვერდი, რესტორანი, ღვინო) - ყველას შეუძლია წაკითხვა, მხოლოდ ადმინებს შეუძლიათ ცვლილება
+    match /sections/{sectionId} {
+      allow read: if true;  // საჯარო წაკითხვა
+      allow write: if isAdmin();
+    }
+
+    // ღვინის ჩამონათვალი - ყველას შეუძლია წაკითხვა, მხოლოდ ადმინებს შეუძლიათ ცვლილება
+    match /wines/{wineId} {
+      allow read: if true;  // საჯარო წაკითხვა
+      allow write: if isAdmin();
+    }
+
+    // მენიუ - ყველას შეუძლია წაკითხვა, მხოლოდ ადმინებს შეუძლიათ ცვლილება
+    match /menu/{itemId} {
+      allow read: if true;  // საჯარო წაკითხვა
+      allow write: if isAdmin();
+    }
+
+    // სისტემის კონფიგურაცია - მხოლოდ ადმინისტრატორებს შეუძლიათ კითხვა და ცვლილება
+    match /system/{configId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ნებისმიერი სხვა კოლექცია უნდა იყოს დაცული
     match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 7, 3);
+      allow read: if isAdmin();
+      allow write: if isAdmin();
     }
   }
 }

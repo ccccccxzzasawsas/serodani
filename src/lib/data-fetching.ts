@@ -1,5 +1,6 @@
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, query, where, orderBy, limit } from 'firebase/firestore';
+import { ref, getDownloadURL, listAll } from 'firebase/storage';
 import { 
   STATIC_PAGE_REVALIDATE_TIME, 
   DYNAMIC_DATA_REVALIDATE_TIME, 
@@ -100,6 +101,40 @@ export async function fetchWines(): Promise<Wine[]> {
     return wines;
   } catch (error) {
     console.error('Error fetching wines:', error);
+    return [];
+  }
+}
+
+/**
+ * ღვინის სურათების მიღება მარტივად - მხოლოდ URL-ები
+ * ეს ფუნქცია აბრუნებს მხოლოდ წინის სურათების URL-ებს უკვე დამუშავებულ ფორმატში
+ */
+export async function fetchWineImagesSimple(): Promise<string[]> {
+  try {
+    console.log("Fetching wine images directly from Firebase Storage...");
+    const winesRef = ref(storage, '/wines');
+    const wineResult = await listAll(winesRef);
+    
+    // პირდაპირ წამოვიღოთ ყველა ფაილის URL
+    const urls = await Promise.all(
+      wineResult.items.map(async (imageRef) => {
+        try {
+          const url = await getDownloadURL(imageRef);
+          return url;
+        } catch (error) {
+          console.error(`Error getting download URL for ${imageRef.name}:`, error);
+          return null;
+        }
+      })
+    );
+    
+    // ვფილტრავთ null-ებს
+    const validUrls = urls.filter(url => url !== null) as string[];
+    console.log(`Successfully fetched ${validUrls.length} wine images directly from Firebase Storage`);
+    
+    return validUrls;
+  } catch (error) {
+    console.error('Error fetching wine images directly:', error);
     return [];
   }
 }

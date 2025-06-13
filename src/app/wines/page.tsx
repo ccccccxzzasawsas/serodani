@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { User } from "lucide-react"
@@ -10,7 +10,7 @@ import { getDoc, doc } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
 import { Footer } from "@/components/Footer"
 import { getDownloadURL, ref } from "firebase/storage"
-import { fetchWines } from "@/lib/data-fetching"
+import { fetchWineImagesSimple } from "@/lib/data-fetching"
 
 export default function WinesPage() {
   const { user, signOut } = useAuth()
@@ -18,119 +18,42 @@ export default function WinesPage() {
   const [heroImage, setHeroImage] = useState<string | null>(null) // null-ით დავიწყოთ
   const [loading, setLoading] = useState(true)
 
-  // ფუნქცია Firebase Storage URL-ის გასაწმენდად და დასაკონვერტირებლად
-  const getProperImageUrl = async (url: string): Promise<string | null> => {
-    // ვამოწმებთ Firebase Storage-ის URL-ს
-    if (url.startsWith('gs://') || url.includes('firebasestorage.googleapis.com')) {
-      try {
-        // თუ URL იწყება gs:// ფორმატით ან შეიცავს firebasestorage, გადავაკონვერტიროთ https:// ფორმატში
-        console.log("Converting Firebase Storage URL:", url);
-        
-        // თუ URL უკვე არის https:// ფორმატში, მაგრამ შეიცავს firebasestorage.googleapis.com
-        if (url.startsWith('http')) {
-          return url; // პირდაპირ დავაბრუნოთ ეს URL
-        }
-        
-        // თუ URL არის gs:// ფორმატში, გადავაკონვერტიროთ https:// ფორმატში
-        const storageRef = ref(storage, url);
-        const httpsUrl = await getDownloadURL(storageRef);
-        console.log("Converted URL:", httpsUrl);
-        return httpsUrl;
-      } catch (error) {
-        console.error("Error converting Firebase Storage URL:", error);
-        return null; // შეცდომის შემთხვევაში დავაბრუნოთ null
-      }
-    }
-    
-    // CORS პრობლემების გამო აღარ ვამოწმებთ URL-ის ვალიდურობას fetch მეთოდით
-    // უბრალოდ ვაბრუნებთ URL-ს და სურათის კომპონენტი თავად დაიჭერს შეცდომას
-    return url;
-  };
-
   useEffect(() => {
-    // გავასუფთავოთ ბრაუზერის ქეში სურათებიდან
-    if (typeof window !== 'undefined') {
-      // ლოკალური სურათების ქეშის წასაშლელი ფუნქცია
-      const clearImageCache = () => {
-        if ('caches' in window) {
-          caches.keys().then(cacheNames => {
-            cacheNames.forEach(cacheName => {
-              caches.delete(cacheName);
-              console.log("Deleted wine cache:", cacheName);
-            });
-          });
-        }
-
-        // ასევე შეგვიძლია ლოკალ სტორეჯში დავინახოთ რომ ქეში გავსუფთავეთ
-        localStorage.setItem("wineCacheCleared", new Date().toISOString());
-        console.log("Wine browser cache clear attempted");
-      };
-
-      clearImageCache();
-    }
-    
     const fetchContent = async () => {
       try {
         // ჰერო სურათის წამოღება Firebase-დან
         const heroDoc = await getDoc(doc(db, "sections", "wineHero"))
         if (heroDoc.exists() && heroDoc.data().imageUrl) {
-          const heroUrl = await getProperImageUrl(heroDoc.data().imageUrl);
-          if (heroUrl) {
-            setHeroImage(heroUrl);
-            console.log("Wine hero loaded from Firebase:", heroUrl);
-          } else {
-            console.log("Wine hero URL not valid, not displaying any hero");
+          try {
+            const heroUrl = heroDoc.data().imageUrl;
+            
+            // თუ URL იწყება https:// ფორმატით, პირდაპირ გამოვიყენოთ
+            if (heroUrl.startsWith('https://')) {
+              setHeroImage(heroUrl);
+            } else {
+              // თუ ეს არის Firebase Storage path, გადავაკონვერტიროთ URL-ად
+              const storageRef = ref(storage, heroUrl);
+              const downloadUrl = await getDownloadURL(storageRef);
+              setHeroImage(downloadUrl);
+            }
+            
+            console.log("Wine hero loaded from Firebase");
+          } catch (error) {
+            console.error("Error loading hero image:", error);
           }
         } else {
           console.log("Wine hero not found in Firebase");
         }
         
-        // ღვინის სურათების წამოღება ქეშირებული ფუნქციით
-        console.log("Fetching wine images using cached function...");
-        const wines = await fetchWines();
+        // ახალი გამარტივებული ფუნქცია ღვინის სურათების წამოსაღებად
+        const wineUrls = await fetchWineImagesSimple();
         
-        // დავალაგოთ დოკუმენტები createdAt-ის მიხედვით, ახლიდან ძველისკენ
-        const sortedWines = wines
-          .filter(wine => wine.url) // მხოლოდ ის დოკუმენტები, რომლებსაც აქვთ url
-          .sort((a, b) => {
-            // დავალაგოთ createdAt ველის მიხედვით, თუ ეს ველი არსებობს
-            if (a.createdAt && b.createdAt) {
-              const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-              const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-              return dateB.getTime() - dateA.getTime(); // ახლიდან ძველისკენ დალაგება
-            }
-            return 0;
-          });
-        
-        console.log(`Found ${sortedWines.length} wine documents`);
-        
-        // ყველა url-ის დამუშავება
-        const imagePromises: Promise<string | null>[] = [];
-        sortedWines.forEach((wine) => {
-          console.log(`Processing wine document ${wine.id}: URL=${wine.url}`);
-          imagePromises.push(
-            getProperImageUrl(wine.url)
-              .then(processedUrl => {
-                if (processedUrl) {
-                  console.log(`Wine ${wine.id}: URL processed successfully:`, processedUrl);
-                } else {
-                  console.log(`Wine ${wine.id}: Invalid URL:`, wine.url);
-                }
-                return processedUrl;
-              })
-          );
-        });
-        
-        // პარალელურად დავამუშავოთ ყველა URL
-        if (imagePromises.length > 0) {
-          const processedImages = await Promise.all(imagePromises);
-          // გავფილტროთ მხოლოდ მოქმედი URL-ები (null ღირებულებები გამოვრიცხოთ)
-          const validImages = processedImages.filter(url => url !== null) as string[];
-          console.log(`Processed ${processedImages.length} URLs, ${validImages.length} valid images`);
-          setWineImages(validImages);
+        if (wineUrls.length > 0) {
+          setWineImages(wineUrls);
+          console.log(`Loaded ${wineUrls.length} wine images`);
         } else {
-          console.log("No Firebase wine images found");
-          setWineImages([]); // ცარიელი მასივი თუ სურათები არ არის
+          console.log("No wine images found");
+          setWineImages([]);
         }
         
         setLoading(false);
