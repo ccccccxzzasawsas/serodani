@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MapPin, Phone, Mail, ChevronLeft, ChevronRight, Star, User } from "lucide-react"
 import { collection, getDocs, doc, getDoc } from "firebase/firestore"
-import { db, storage, rtdb } from "@/lib/firebase"
+import { db, storage } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
 import { getStorage, ref, listAll, getDownloadURL, getMetadata } from "firebase/storage"
 import { Footer } from "@/components/Footer"
-import { getSectionFromRealtime, listenToSection } from "@/lib/realtimeDb"
 
 export default function KviriaHotel() {
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0)
@@ -61,183 +60,128 @@ export default function KviriaHotel() {
       ]);
       
       try {
-        // მოვუსმინოთ მთავარი ჰერო სურათს Realtime Database-დან
-        const heroUnsubscribe = listenToSection("hero", (heroData) => {
-          if (heroData && heroData.imageUrl) {
-            setHeroImage(heroData.imageUrl);
-            console.log("Hero image loaded from Realtime Database:", heroData.imageUrl);
-          }
-        });
-        
-        // მოვუსმინოთ სლაიდერის სურათებს Realtime Database-დან
-        const sliderUnsubscribe = listenToSection("slider", (sliderData) => {
-          if (sliderData && sliderData.imageUrls && sliderData.imageUrls.length > 0) {
-            setSliderImages(sliderData.imageUrls);
-            console.log("Slider images loaded from Realtime Database:", sliderData.imageUrls.length);
-          }
-        });
-        
-        // მოვუსმინოთ სთორის სურათებს Realtime Database-დან
-        const storyUnsubscribe = listenToSection("story", (storyData) => {
-          if (storyData && storyData.imageUrls && storyData.imageUrls.length > 0) {
-            setStoryImages(storyData.imageUrls);
-            console.log("Story images loaded from Realtime Database:", storyData.imageUrls.length);
-          }
-        });
-        
-        // მოვუსმინოთ დიდ სურათს Realtime Database-დან
-        const largePhotoUnsubscribe = listenToSection("largePhoto", (largePhotoData) => {
-          if (largePhotoData && largePhotoData.imageUrl) {
-            setLargePhoto(largePhotoData.imageUrl);
-            console.log("Large photo loaded from Realtime Database:", largePhotoData.imageUrl);
-          }
-        });
-        
-        // მოვუსმინოთ გესთის რევიუს სურათს Realtime Database-დან
-        const guestReviewUnsubscribe = listenToSection("guestReview", (guestReviewData) => {
-          if (guestReviewData && guestReviewData.imageUrl) {
-            setGuestReviewImage(guestReviewData.imageUrl);
-            console.log("Guest review image loaded from Realtime Database:", guestReviewData.imageUrl);
-          }
-        });
-        
-        // მოვუსმინოთ გალერიის სურათებს Realtime Database-დან
-        const galleryUnsubscribe = listenToSection("gallery", (galleryData) => {
-          if (galleryData && galleryData.images && galleryData.images.length > 0) {
-            // ამოვიღოთ URL-ები გალერიის სურათებიდან
-            const urls = galleryData.images.map((img: any) => img.url);
-            console.log("Gallery data from listener:", galleryData);
-            console.log("Extracted gallery URLs:", urls);
-            setGalleryImages(urls);
-            console.log("Gallery images loaded from Realtime Database:", urls.length);
-          } else {
-            console.log("Gallery listener received data but no valid images found:", galleryData);
-          }
-        });
-        
-        // თუ Realtime Database-დან ვერ მივიღეთ მონაცემები, ძველი ლოგიკით ვცადოთ Firestore-დან
-        const checkFirestore = async () => {
-          // მთავარი ჰერო სურათის წამოღება Firebase-დან
-          const heroDoc = await getDoc(doc(db, "sections", "hero"))
-          if (heroDoc.exists() && heroDoc.data().imageUrl) {
-            setHeroImage(heroDoc.data().imageUrl)
-            console.log("Hero image loaded from Firebase:", heroDoc.data().imageUrl)
-          } else {
-            console.log("Hero image document not found or no imageUrl")
-          }
-          
-          // დანარჩენი კოდი უცვლელი...
-        };
-        
-        // შევამოწმოთ მონაცემები Realtime Database-ში
-        const heroData = await getSectionFromRealtime("hero");
-        const sliderData = await getSectionFromRealtime("slider");
-        const storyData = await getSectionFromRealtime("story");
-        const largePhotoData = await getSectionFromRealtime("largePhoto");
-        const guestReviewData = await getSectionFromRealtime("guestReview");
-        const galleryData = await getSectionFromRealtime("gallery");
-        
-        // გალერიის სურათებს არ ვაიგნორებთ Realtime Database-დან
-        if (galleryData && galleryData.images && galleryData.images.length > 0) {
-          const urls = galleryData.images.map((img: any) => img.url);
-          console.log("Gallery data direct fetch:", galleryData);
-          console.log("Extracted gallery URLs (direct):", urls);
-          setGalleryImages(urls);
-          console.log("Gallery images loaded directly from Realtime Database:", urls.length);
+        // მთავარი ჰერო სურათის წამოღება Firebase-დან
+        const heroDoc = await getDoc(doc(db, "sections", "hero"))
+        if (heroDoc.exists() && heroDoc.data().imageUrl) {
+          setHeroImage(heroDoc.data().imageUrl)
+          console.log("Hero image loaded from Firebase:", heroDoc.data().imageUrl)
         } else {
-          console.log("No gallery images found in Realtime Database or invalid structure:", galleryData);
+          console.log("Hero image document not found or no imageUrl")
+        }
+
+        // სლაიდერის სურათების წამოღება Firebase Storage-დან /slider ფოლდერიდან
+        try {
+          const sliderRef = ref(storage, '/slider');
+          const sliderResult = await listAll(sliderRef);
           
-          // თუ Realtime Database-ში არ არის გალერიის სურათები, ვცადოთ Storage-დან წამოღება
-          try {
-            console.log("Fetching gallery images from Firebase Storage '/gallery' folder...");
-            const galleryRef = ref(storage, '/gallery');
-            const galleryResult = await listAll(galleryRef);
-            
-            if (galleryResult.items.length > 0) {
-              // შევაგროვოთ ყველა ფაილის მეტადატა და URL ერთდროულად
-              const galleryImagesWithMetadata = await Promise.all(
-                galleryResult.items.map(async (imageRef) => {
-                  try {
-                    const url = await getDownloadURL(imageRef);
-                    const metadata = await getMetadata(imageRef);
-                    return {
-                      url: url,
-                      timeCreated: metadata.timeCreated ? new Date(metadata.timeCreated) : new Date(),
-                      name: imageRef.name
-                    };
-                  } catch (error) {
-                    console.error(`Error processing gallery image ${imageRef.name}:`, error);
-                    return null;
-                  }
-                })
-              );
-              
-              // გავფილტროთ null მნიშვნელობები და დავალაგოთ თარიღის მიხედვით (ახლიდან ძველისკენ)
-              const sortedGalleryImages = galleryImagesWithMetadata
-                .filter(item => item !== null)
-                .sort((a, b) => {
-                  if (!a || !b) return 0;
-                  return b.timeCreated.getTime() - a.timeCreated.getTime();
-                })
-                .map(item => item!.url);
-              
-              if (sortedGalleryImages.length > 0) {
-                setGalleryImages(sortedGalleryImages);
-                console.log("Gallery images loaded from Firebase Storage:", sortedGalleryImages.length);
-              } else {
-                console.log("No valid gallery images found in Firebase Storage");
-                setGalleryImages([]);
-              }
-            } else {
-              console.log("No gallery images found in Firebase Storage");
-              setGalleryImages([]);
+          const sliderImagePromises = sliderResult.items.map(async (imageRef) => {
+            try {
+              const url = await getDownloadURL(imageRef);
+              return url;
+            } catch (error) {
+              console.error("Error getting slider image URL:", error);
+              return null;
             }
-          } catch (error) {
-            console.error("Error fetching gallery images from Firebase Storage:", error);
-            setGalleryImages([]);
-          }
-        }
-        
-        // თუ Realtime Database-ში არ არის მონაცემები, ვცადოთ Firestore
-        if (!heroData && !sliderData && !storyData && !largePhotoData && !guestReviewData) {
-          console.log("No data found in Realtime Database, trying Firestore...");
-          await checkFirestore();
-        }
-        
-        // გავაგრძელოთ სხვა მონაცემების წამოღება (გალერია და ა.შ.)
-        
-        // კოდის დანარჩენი ნაწილი უცვლელი...
-        
-        setLoading(false);
-        
-        // დავრწმუნდეთ, რომ galleryImages არ არის ცარიელი
-        if (galleryImages.length === 0) {
-          console.log("Setting default gallery images because galleryImages is empty");
-          // დეფოლტ სურათები, თუ ვერ ჩაიტვირთა
-          setGalleryImages([
-            '/gallery/1.jpg',
-            '/gallery/2.jpg',
-            '/gallery/3.jpg',
-            '/gallery/4.jpg',
-            '/gallery/5.jpg',
-            '/gallery/6.jpg',
-          ]);
-        }
-        
-        // გავასუფთავოთ ლისენერები, როცა კომპონენტი ანმაუნთდება
-        return () => {
-          heroUnsubscribe();
-          sliderUnsubscribe();
-          storyUnsubscribe();
-          largePhotoUnsubscribe();
-          guestReviewUnsubscribe();
-          galleryUnsubscribe();
+          });
           
-          // წავშალოთ ანიმაცია, თუ კომპონენტი ანმაუნთდება
-          if (animationRef.current !== null) {
-            cancelAnimationFrame(animationRef.current)
+          const sliderImageUrls = (await Promise.all(sliderImagePromises)).filter(url => url !== null) as string[];
+          
+          if (sliderImageUrls.length > 0) {
+            setSliderImages(sliderImageUrls);
+            console.log("Slider images loaded from Firebase Storage:", sliderImageUrls.length);
           }
-        };
+        } catch (error) {
+          console.error("Error fetching slider images from Firebase Storage:", error);
+          // ფოლბეკი უკვე დაყენებულია, ამიტომ აქ არაფერი არ გვჭირდება
+        }
+
+        // სთორის სურათების წამოღება Firebase-დან
+        const storyDoc = await getDoc(doc(db, "sections", "story"))
+        if (storyDoc.exists() && storyDoc.data().imageUrls) {
+          setStoryImages(storyDoc.data().imageUrls)
+          console.log("Story images loaded from Firebase:", storyDoc.data().imageUrls)
+        } else {
+          console.log("Story document not found or no imageUrls")
+        }
+
+        // დიდი სურათის წამოღება Firebase-დან
+        const largePhotoDoc = await getDoc(doc(db, "sections", "largePhoto"))
+        if (largePhotoDoc.exists() && largePhotoDoc.data().imageUrl) {
+          setLargePhoto(largePhotoDoc.data().imageUrl)
+          console.log("Large photo loaded from Firebase:", largePhotoDoc.data().imageUrl)
+        } else {
+          console.log("Large photo document not found or no imageUrl")
+        }
+
+        // გესთის რევიუს სურათის წამოღება Firebase-დან
+        const guestReviewDoc = await getDoc(doc(db, "sections", "guestReview"))
+        if (guestReviewDoc.exists() && guestReviewDoc.data().imageUrl) {
+          setGuestReviewImage(guestReviewDoc.data().imageUrl)
+          console.log("Guest review image loaded from Firebase:", guestReviewDoc.data().imageUrl)
+        } else {
+          console.log("Guest review document not found or no imageUrl")
+        }
+        
+        // გალერიის სურათების წამოღება Firebase Storage-დან /gallery ფოლდერიდან
+        try {
+          console.log("Fetching gallery images from Firebase Storage '/gallery' folder...");
+          const galleryRef = ref(storage, '/gallery');
+          const galleryResult = await listAll(galleryRef);
+          
+          if (galleryResult.items.length > 0) {
+            // შევაგროვოთ ყველა ფაილის მეტადატა და URL ერთდროულად
+            const galleryImagesWithMetadata = await Promise.all(
+              galleryResult.items.map(async (imageRef) => {
+                try {
+                  const url = await getDownloadURL(imageRef);
+                  const metadata = await getMetadata(imageRef);
+                  return {
+                    url: url,
+                    timeCreated: metadata.timeCreated ? new Date(metadata.timeCreated) : new Date(),
+                    name: imageRef.name
+                  };
+                } catch (error) {
+                  console.error(`Error processing gallery image ${imageRef.name}:`, error);
+                  return null;
+                }
+              })
+            );
+            
+            // გავფილტროთ null მნიშვნელობები და დავალაგოთ თარიღის მიხედვით (ახლიდან ძველისკენ)
+            const sortedGalleryImages = galleryImagesWithMetadata
+              .filter(item => item !== null)
+              .sort((a, b) => {
+                if (!a || !b) return 0;
+                return b.timeCreated.getTime() - a.timeCreated.getTime();
+              })
+              .map(item => item!.url);
+            
+            if (sortedGalleryImages.length > 0) {
+              setGalleryImages(sortedGalleryImages);
+              console.log("Gallery images loaded and sorted from Firebase Storage:", sortedGalleryImages.length);
+            } else {
+              console.log("No valid gallery images found in Firebase Storage, using fallback local images");
+              // ფოლბექი ლოკალური სურათებისთვის
+              const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`);
+              localGalleryImages[1] = '/2.png';
+              setGalleryImages(localGalleryImages);
+            }
+          } else {
+            console.log("No gallery images found in Firebase Storage, using fallback local images");
+            // ფოლბექი ლოკალური სურათებისთვის
+            const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`);
+            localGalleryImages[1] = '/2.png';
+            setGalleryImages(localGalleryImages);
+          }
+        } catch (error) {
+          console.error("Error fetching gallery images from Firebase Storage:", error);
+          // ფოლბექი ლოკალური სურათებისთვის შეცდომის შემთხვევაში
+          const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`);
+          localGalleryImages[1] = '/2.png';
+          setGalleryImages(localGalleryImages);
+        }
+        
+        setLoading(false)
       } catch (error) {
         console.error("Error fetching content:", error)
         setLoading(false)
@@ -245,6 +189,13 @@ export default function KviriaHotel() {
     }
 
     fetchContent()
+    
+    return () => {
+      // წავშალოთ ანიმაცია, თუ კომპონენტი ანმაუნთდება
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current)
+      }
+    }
   }, [])
   
   // ცალკე useEffect სლაიდერის ანიმაციისთვის, რომელიც გაეშვება ფოტოების ჩატვირთვის შემდეგ
@@ -307,24 +258,6 @@ export default function KviriaHotel() {
       }
     };
   }, [sliderImages, loading]); // დავამატოთ loading უკან დამოკიდებულებებში
-
-  // დამატებითი useEffect გალერიის სურათების მონიტორინგისთვის
-  useEffect(() => {
-    console.log("Gallery images state changed:", galleryImages.length);
-    
-    // თუ გალერიის სურათები ცარიელია და ჩატვირთვა დასრულებულია, დავაყენოთ დეფოლტ სურათები
-    if (galleryImages.length === 0 && !loading) {
-      console.log("Setting fallback gallery images in monitoring effect");
-      setGalleryImages([
-        '/gallery/1.jpg',
-        '/gallery/2.jpg',
-        '/gallery/3.jpg',
-        '/gallery/4.jpg',
-        '/gallery/5.jpg',
-        '/gallery/6.jpg',
-      ]);
-    }
-  }, [galleryImages, loading]);
 
   const nextGalleryImage = () => {
     setCurrentGalleryIndex((prev) => {

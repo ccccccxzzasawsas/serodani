@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth"
-import { Home, ImageIcon, Bed, UtensilsCrossed, Wine, LogOut, Calendar, FileSymlink } from "lucide-react"
+import { Home, ImageIcon, Bed, UtensilsCrossed, Wine, LogOut, Calendar } from "lucide-react"
 
 export function AdminNav() {
   const pathname = usePathname()
@@ -79,14 +79,6 @@ export function AdminNav() {
               <Button variant={isActive("/admin/wines") ? "default" : "ghost"} className="w-full justify-start">
                 <Wine className="mr-2 h-4 w-4" />
                 მარანი და ღვინო
-              </Button>
-            </Link>
-          </li>
-          <li>
-            <Link href="/admin/data-migration">
-              <Button variant={isActive("/admin/data-migration") ? "default" : "ghost"} className="w-full justify-start">
-                <FileSymlink className="mr-2 h-4 w-4" />
-                მონაცემთა მიგრაცია
               </Button>
             </Link>
           </li>

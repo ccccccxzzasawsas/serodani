@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { invalidateAllCache, invalidateCache } from '@/lib/cache-utils';
 import { CACHE_TAGS } from '@/lib/cache-config';
-import { revalidatePath } from 'next/cache';
 
 /**
  * API handler ქეშის განახლებისთვის
@@ -49,32 +48,5 @@ export async function POST(request: NextRequest) {
       { message: 'Error revalidating cache', error: String(error) },
       { status: 500 }
     );
-  }
-}
-
-export async function GET(request: NextRequest) {
-  const path = request.nextUrl.searchParams.get('path') || '/';
-  const secret = request.nextUrl.searchParams.get('secret');
-  
-  // დარწმუნდით, რომ მოთხოვნა უსაფრთხოა (თუ საჭიროა)
-  // თუ გსურთ დაამატოთ უსაფრთხოების საიდუმლო, შეგიძლიათ შეამოწმოთ აქ
-  // if (secret !== process.env.REVALIDATE_SECRET) {
-  //   return NextResponse.json({ message: 'Invalid secret' }, { status: 401 });
-  // }
-  
-  try {
-    // რეალიდაცია მითითებული გზისთვის
-    revalidatePath(path);
-    return NextResponse.json({ 
-      revalidated: true, 
-      now: Date.now(),
-      path 
-    });
-  } catch (err) {
-    return NextResponse.json({ 
-      revalidated: false, 
-      now: Date.now(),
-      error: (err as Error).message 
-    }, { status: 500 });
   }
 } 
