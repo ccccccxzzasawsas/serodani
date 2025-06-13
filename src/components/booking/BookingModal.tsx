@@ -94,8 +94,9 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   }
 
-  // ჯამური ფასის გამოთვლა
+  // ჯამური ფასის გამოთვლა - საჭიროა მხოლოდ შიდა გამოყენებისთვის
   const calculateTotal = () => {
+    // ფუნქცია რჩება შიდა ლოგიკისთვის, მაგრამ არ ჩანს UI-ში
     const nights = calculateNights()
     const beds = Number.parseInt(numberOfRooms)
     const currentRoom = selectedAlternativeRoom || room

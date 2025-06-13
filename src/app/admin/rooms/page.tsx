@@ -49,6 +49,10 @@ export default function AdminRoomsPage() {
   const [heroImage, setHeroImage] = useState("")
   const [loadingHero, setLoadingHero] = useState(true)
   
+  // Photo management state
+  const [photoUpdateLoading, setPhotoUpdateLoading] = useState(false)
+  const [photoUploadDialogOpen, setPhotoUploadDialogOpen] = useState(false)
+  
   // ფასის რედაქტირების state
   const [priceDialogOpen, setPriceDialogOpen] = useState(false)
   const [roomToEdit, setRoomToEdit] = useState<Room | null>(null)
@@ -640,210 +644,455 @@ export default function AdminRoomsPage() {
     }
   }
 
-  return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">ოთახების მართვა</h1>
+  // Move a room photo up in the order
+  const moveRoomPhotoUp = async (photoIndex: number) => {
+    if (!selectedRoom || !selectedRoom.images || photoIndex <= 0) return;
+    
+    setPhotoUpdateLoading(true);
+    try {
+      // Create a copy of the images array
+      const updatedImages = [...selectedRoom.images];
+      
+      // Swap the current image with the one above it
+      const temp = updatedImages[photoIndex];
+      updatedImages[photoIndex] = updatedImages[photoIndex - 1];
+      updatedImages[photoIndex - 1] = temp;
+      
+      // Update positions
+      const reorderedImages = updatedImages.map((img, i) => ({
+        ...img,
+        position: i
+      }));
+      
+      // Update the room document in Firestore
+      const roomRef = doc(db, "rooms", selectedRoom.id);
+      await updateDoc(roomRef, {
+        images: reorderedImages
+      });
+      
+      // Update the local state
+      setSelectedRoom({
+        ...selectedRoom,
+        images: reorderedImages
+      });
+      
+      toast({
+        title: "წარმატება",
+        description: "ფოტოს პოზიცია განახლდა",
+      });
+    } catch (error) {
+      console.error("Error moving photo up:", error);
+      toast({
+        title: "შეცდომა",
+        description: "ფოტოს გადაადგილება ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    } finally {
+      setPhotoUpdateLoading(false);
+    }
+  };
+  
+  // Move a room photo down in the order
+  const moveRoomPhotoDown = async (photoIndex: number) => {
+    if (!selectedRoom || !selectedRoom.images || photoIndex >= selectedRoom.images.length - 1) return;
+    
+    setPhotoUpdateLoading(true);
+    try {
+      // Create a copy of the images array
+      const updatedImages = [...selectedRoom.images];
+      
+      // Swap the current image with the one below it
+      const temp = updatedImages[photoIndex];
+      updatedImages[photoIndex] = updatedImages[photoIndex + 1];
+      updatedImages[photoIndex + 1] = temp;
+      
+      // Update positions
+      const reorderedImages = updatedImages.map((img, i) => ({
+        ...img,
+        position: i
+      }));
+      
+      // Update the room document in Firestore
+      const roomRef = doc(db, "rooms", selectedRoom.id);
+      await updateDoc(roomRef, {
+        images: reorderedImages
+      });
+      
+      // Update the local state
+      setSelectedRoom({
+        ...selectedRoom,
+        images: reorderedImages
+      });
+      
+      toast({
+        title: "წარმატება",
+        description: "ფოტოს პოზიცია განახლდა",
+      });
+    } catch (error) {
+      console.error("Error moving photo down:", error);
+      toast({
+        title: "შეცდომა",
+        description: "ფოტოს გადაადგილება ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    } finally {
+      setPhotoUpdateLoading(false);
+    }
+  };
+  
+  // Delete a room photo
+  const deleteRoomPhoto = async (photoIndex: number) => {
+    if (!selectedRoom || !selectedRoom.images) return;
+    
+    setPhotoUpdateLoading(true);
+    try {
+      // Create a copy of the images array
+      const updatedImages = [...selectedRoom.images];
+      const photoToDelete = updatedImages[photoIndex];
+      
+      // Check if it's the only photo - we can't delete the last photo
+      if (updatedImages.length <= 1) {
+        toast({
+          title: "შეცდომა",
+          description: "ბოლო ფოტოს წაშლა არ შეიძლება. ოთახს უნდა ჰქონდეს მინიმუმ ერთი ფოტო.",
+          variant: "destructive",
+        });
+        setPhotoUpdateLoading(false);
+        return;
+      }
+      
+      // Remove the photo from the array
+      updatedImages.splice(photoIndex, 1);
+      
+      // Update positions
+      const reorderedImages = updatedImages.map((img, i) => ({
+        ...img,
+        position: i
+      }));
+      
+      // Update the room document in Firestore
+      const roomRef = doc(db, "rooms", selectedRoom.id);
+      await updateDoc(roomRef, {
+        images: reorderedImages,
+        // If the first image was deleted, update the main imageUrl to the new first image
+        ...(photoIndex === 0 ? { imageUrl: reorderedImages[0].url } : {})
+      });
+      
+      // Try to delete the image from Firebase Storage
+      try {
+        const imageUrl = photoToDelete.url;
+        if (imageUrl.includes('firebasestorage.googleapis.com')) {
+          const pathRegex = /\/o\/(.+?)\?/;
+          const match = imageUrl.match(pathRegex);
+          if (match && match[1]) {
+            const filePath = decodeURIComponent(match[1]);
+            const storageRef = ref(storage, filePath);
+            await deleteObject(storageRef);
+          }
+        }
+      } catch (error) {
+        console.error("Error deleting image from storage:", error);
+        // Continue anyway as the Firestore document is already updated
+      }
+      
+      // Update the local state
+      setSelectedRoom({
+        ...selectedRoom,
+        images: reorderedImages,
+        ...(photoIndex === 0 ? { imageUrl: reorderedImages[0].url } : {})
+      });
+      
+      toast({
+        title: "წარმატება",
+        description: "ფოტო წაიშალა",
+      });
+    } catch (error) {
+      console.error("Error deleting photo:", error);
+      toast({
+        title: "შეცდომა",
+        description: "ფოტოს წაშლა ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    } finally {
+      setPhotoUpdateLoading(false);
+    }
+  };
+  
+  // Open photo upload dialog
+  const openPhotoUploadDialog = () => {
+    setPhotoUploadDialogOpen(true);
+  };
+  
+  // Handle photo upload completion
+  const handlePhotoUpload = async (url: string) => {
+    if (!selectedRoom) return;
+    
+    try {
+      // Get the current images array
+      const currentImages = selectedRoom.images || [];
+      
+      // Add the new image to the end of the array
+      const newImage = {
+        url,
+        position: currentImages.length
+      };
+      
+      const updatedImages = [...currentImages, newImage];
+      
+      // Update the room document in Firestore
+      const roomRef = doc(db, "rooms", selectedRoom.id);
+      await updateDoc(roomRef, {
+        images: updatedImages,
+        // If this is the first image, also update the main imageUrl
+        ...(updatedImages.length === 1 ? { imageUrl: url } : {})
+      });
+      
+      // Update the local state
+      setSelectedRoom({
+        ...selectedRoom,
+        images: updatedImages,
+        ...(updatedImages.length === 1 ? { imageUrl: url } : {})
+      });
+      
+      toast({
+        title: "წარმატება",
+        description: "ფოტო დაემატა",
+      });
+    } catch (error) {
+      console.error("Error adding photo:", error);
+      toast({
+        title: "შეცდომა",
+        description: "ფოტოს დამატება ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    }
+  };
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-8">
-          <TabsTrigger value="manage">არსებული ოთახები</TabsTrigger>
-          <TabsTrigger value="add">ახალი ოთახის დამატება</TabsTrigger>
-          <TabsTrigger value="hero">მთავარი სურათი</TabsTrigger>
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-6">ოთახების მართვა</h1>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4 bg-white border shadow-sm">
+          <TabsTrigger value="manage" className="font-medium">ოთახების სია</TabsTrigger>
+          <TabsTrigger value="add" className="font-medium">ოთახის დამატება</TabsTrigger>
+          <TabsTrigger value="hero" className="font-medium">Hero სურათი</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="manage">
-          <Card>
-            <CardHeader>
-              <CardTitle>არსებული ოთახები</CardTitle>
-            </CardHeader>
-            <CardContent>
+        <TabsContent value="manage" className="bg-white rounded-lg border shadow-md p-6">
+          <h2 className="text-2xl font-bold mb-4">ოთახების სია</h2>
+          
               {loading ? (
-                <p className="text-gray-500">ოთახები იტვირთება...</p>
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            </div>
               ) : rooms.length === 0 ? (
-                <p className="text-gray-500">ოთახები არ მოიძებნა. დაამატეთ პირველი ოთახი!</p>
+            <div className="py-12 text-center">
+              <p className="text-gray-500 mb-4">ოთახები არ არის დამატებული</p>
+              <Button onClick={() => setActiveTab("add")}>
+                დაამატე პირველი ოთახი
+              </Button>
+            </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-4">
                   {rooms.map((room, index) => (
-                    <Card key={room.id} className="overflow-hidden">
-                      <div className="relative h-48">
+                <Card key={room.id} className="overflow-hidden border-2 shadow-lg">
+                  <CardContent className="p-0">
+                    <div className="flex flex-col md:flex-row">
+                      <div className="w-full md:w-1/3 h-64 relative">
                         <img
-                          src={room.imageUrl || "/placeholder.svg?height=192&width=384&text=Room"}
+                          src={room.imageUrl || (room.images && room.images[0]?.url)}
                           alt={room.name}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute bottom-2 right-2 flex space-x-2">
-                          <Button 
-                            variant="secondary" 
-                            size="sm"
-                            onClick={() => showRoomImages(room)}
-                            className="bg-black/50 hover:bg-black/70 text-white"
-                          >
-                            <Images className="h-4 w-4 mr-1" />
-                            {room.images?.length || 1} ფოტო
-                          </Button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white p-2">
+                          <p>პოზიცია: {room.position !== undefined ? room.position + 1 : '—'}</p>
                         </div>
                       </div>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-bold">{room.name}</h3>
-                          <div className="flex items-center gap-1">
-                          <p className="text-green-600 font-medium">{room.price} ლარი</p>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6" 
-                              onClick={() => openPriceDialog(room)}
-                            >
-                              <Pencil className="h-3 w-3 text-gray-500" />
-                            </Button>
+                      <div className="w-full md:w-2/3 p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <h3 className="text-xl font-bold">{room.name}</h3>
+                          <div className="text-lg font-semibold text-orange-600">
+                            {room.price} ₾
                           </div>
                         </div>
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{room.description}</p>
-                        <div className="flex flex-col gap-2 mb-4">
-                          <div className="flex justify-between text-sm">
-                            <span>საწოლები:</span>
-                            <span className="font-medium">{room.beds}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>დამატებითი საწოლები:</span>
-                            <span className="font-medium">{room.extraBeds || 0}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>მინ. დასაჯავშნი:</span>
-                            <span className="font-medium">{room.minBookingBeds || 1}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 mt-1">
+                        
+                        <div className="mb-4 text-gray-700">
+                          <p>საწოლების რ-ბა: <strong>{room.beds}</strong></p>
+                          <p>დამატებითი საწოლები: <strong>{room.extraBeds || 0}</strong></p>
+                          <p>მინ. დასაჯავშნი საწოლები: <strong>{room.minBookingBeds || 1}</strong></p>
+                        </div>
+                        
+                        {room.description && (
+                          <p className="mb-4 text-gray-700">{room.description}</p>
+                        )}
+                        
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => showRoomImages(room)}
+                            className="bg-white border-gray-300 hover:bg-gray-100"
+                          >
+                            <Images className="h-4 w-4 mr-2" />
+                            ფოტოები
+                          </Button>
+                          
+                            <Button 
+                            variant="outline" 
+                            size="sm"
+                              onClick={() => openPriceDialog(room)}
+                            className="bg-white border-gray-300 hover:bg-gray-100"
+                            >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            ფასის შეცვლა
+                            </Button>
+                          
                             <Button 
                               variant="outline" 
                               size="sm"
                               onClick={() => openSettingsDialog(room)}
+                            className="bg-white border-gray-300 hover:bg-gray-100"
                             >
-                              <Settings className="h-3 w-3 mr-1" />
+                            <Settings className="h-4 w-4 mr-2" />
                               პარამეტრები
                             </Button>
+                          
                             <Button 
                               variant="outline" 
                               size="sm"
                               onClick={() => openBedPricesDialog(room)}
+                            className="bg-white border-gray-300 hover:bg-gray-100"
                             >
-                              <Settings className="h-3 w-3 mr-1" />
-                              ფასები
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="flex justify-between">
-                          <div className="flex space-x-1">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => moveRoomUp(room.id, index)}
-                              disabled={index === 0 || saving === room.id}
-                              className="h-9 px-2"
-                            >
-                              {saving === room.id ? (
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
-                              ) : (
-                                <ArrowUp className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => moveRoomDown(room.id, index)}
-                              disabled={index === rooms.length - 1 || saving === room.id}
-                              className="h-9 px-2"
-                            >
-                              {saving === room.id ? (
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
-                              ) : (
-                                <ArrowDown className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
+                            <Settings className="h-4 w-4 mr-2" />
+                            საწოლების ფასები
+                          </Button>
+                          
                           <Button 
                             variant="destructive" 
                             size="sm"
                             onClick={() => confirmDelete(room)}
+                            className="hover:bg-red-700"
                           >
-                            <Trash2 className="h-4 w-4 mr-1" />
+                            <Trash2 className="h-4 w-4 mr-2" />
                             წაშლა
-                          </Button>
+                            </Button>
+                          </div>
+                        
+                        <div className="flex mt-4 gap-2">
+                            <Button 
+                            variant="secondary"
+                              size="sm"
+                              onClick={() => moveRoomUp(room.id, index)}
+                              disabled={index === 0 || saving === room.id}
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+                          >
+                            <ArrowUp className="h-4 w-4 mr-1" />
+                            აწევა
+                            </Button>
+                            <Button 
+                            variant="secondary"
+                              size="sm"
+                              onClick={() => moveRoomDown(room.id, index)}
+                              disabled={index === rooms.length - 1 || saving === room.id}
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+                          >
+                            <ArrowDown className="h-4 w-4 mr-1" />
+                            ჩამოწევა
+                            </Button>
+                          {saving === room.id && (
+                            <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                          )}
+                          </div>
+                      </div>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
-        <TabsContent value="add">
+        <TabsContent value="add" className="bg-white rounded-lg border shadow-md p-6">
+          <h2 className="text-2xl font-bold mb-4">ოთახის დამატება</h2>
           <RoomForm onRoomAdded={handleRoomAdded} />
         </TabsContent>
 
-        <TabsContent value="hero">
-          <Card>
-            <CardHeader>
-              <CardTitle>ოთახების გვერდის მთავარი სურათი</CardTitle>
-              <p className="text-sm text-gray-500">ეს სურათი გამოჩნდება ოთახების გვერდზე მთავარ განყოფილებაში.</p>
-            </CardHeader>
-            <CardContent>
-              {heroSuccess && (
-                <Alert className="mb-4 bg-green-50 border-green-200">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-600">მთავარი სურათი განახლდა!</AlertDescription>
+        <TabsContent value="hero" className="bg-white rounded-lg border shadow-md p-6">
+          <h2 className="text-2xl font-bold mb-4">ოთახების Hero სურათი</h2>
+          
+          <div className="mb-8">
+            <Alert className="mb-4 bg-orange-50 border-orange-200">
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+              <AlertDescription>
+                ეს სურათი გამოჩნდება ოთახების გვერდის ზედა ნაწილში. რეკომენდებულია ფართო (landscape) ორიენტაციის სურათი.
+              </AlertDescription>
                 </Alert>
-              )}
 
-              <div className="grid md:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-lg font-medium mb-2">მიმდინარე სურათი</h3>
-                  <div className="relative h-64 bg-gray-100 rounded-md overflow-hidden">
                     {loadingHero ? (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-400"></div>
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
                       </div>
-                    ) : heroImage ? (
-                      <img src={heroImage} alt="Current Hero" className="w-full h-full object-cover" />
+            ) : (
+              <div className="mb-6">
+                <div className="rounded-lg overflow-hidden border-2 border-gray-300 shadow-md">
+                  {heroImage ? (
+                    <img 
+                      src={heroImage} 
+                      alt="Hero სურათი" 
+                      className="w-full h-64 object-cover"
+                    />
                     ) : (
-                      <div className="flex items-center justify-center h-full text-gray-400">
-                        სურათი არ არის ატვირთული
+                    <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
+                      <p className="text-gray-500">სურათი არ არის არჩეული</p>
                       </div>
                     )}
                   </div>
                 </div>
+            )}
+            
+            {heroSuccess && (
+              <Alert className="mb-4 bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <AlertDescription>
+                  Hero სურათი წარმატებით განახლდა!
+                </AlertDescription>
+              </Alert>
+            )}
 
                 <UploadForm
-                  title="ატვირთეთ ახალი სურათი"
-                  description="რეკომენდებულია მაღალი რეზოლუციის (მინიმუმ 1920x1080) სურათი."
-                  path="roomsHero"
+              title="Hero სურათის ატვირთვა"
+              description="აირჩიეთ სურათი ოთახების გვერდის Hero სექციისთვის"
+              path="sections"
                   onUploadComplete={handleHeroUpload}
-                  previewHeight={250}
+              previewHeight={300}
                 />
               </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-white border-2 shadow-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-              ოთახის წაშლა
-            </DialogTitle>
-            <DialogDescription>
-              დარწმუნებული ხართ, რომ გსურთ წაშალოთ "{roomToDelete?.name}"? ეს ქმედება ვერ იქნება გაუქმებული.
+            <DialogTitle className="text-xl text-red-600">ოთახის წაშლა</DialogTitle>
+            <DialogDescription className="text-gray-700">
+              დარწმუნებული ხართ, რომ გსურთ ოთახის წაშლა? ეს მოქმედება შეუქცევადია.
             </DialogDescription>
           </DialogHeader>
+          
+          {roomToDelete && (
+            <div className="py-4">
+              <p className="font-medium">{roomToDelete.name}</p>
+              <p className="text-gray-600">ფასი: {roomToDelete.price} ₾</p>
+            </div>
+          )}
+          
           <DialogFooter>
             <Button
-              variant="ghost"
+              variant="outline" 
               onClick={() => setDeleteDialogOpen(false)}
-              disabled={deleteLoading}
+              className="bg-white border-gray-300 hover:bg-gray-100"
             >
               გაუქმება
             </Button>
@@ -851,14 +1100,15 @@ export default function AdminRoomsPage() {
               variant="destructive" 
               onClick={handleDeleteRoom}
               disabled={deleteLoading}
+              className="hover:bg-red-700"
             >
               {deleteLoading ? (
                 <>
-                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent"></div>
-                  იშლება...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  წაშლა...
                 </>
               ) : (
-                'წაშლა'
+                "წაშლა"
               )}
             </Button>
           </DialogFooter>
@@ -867,274 +1117,375 @@ export default function AdminRoomsPage() {
 
       {/* Room Images Dialog */}
       <Dialog open={imagesDialogOpen} onOpenChange={setImagesDialogOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="max-w-4xl bg-white border-2 shadow-lg">
           <DialogHeader>
-            <DialogTitle>{selectedRoom?.name} - ფოტოები</DialogTitle>
-            <DialogDescription>
-              ოთახის ყველა ფოტო
+            <DialogTitle className="text-xl">ოთახის ფოტოები - {selectedRoom?.name}</DialogTitle>
+            <DialogDescription className="text-gray-700">
+              ფოტოების გალერეა ოთახისთვის
             </DialogDescription>
           </DialogHeader>
           
-          {selectedRoom && (
             <div className="mt-4">
-              <Carousel className="w-full">
-                <CarouselContent>
-                  {selectedRoom.images && selectedRoom.images.length > 0 ? (
-                    selectedRoom.images
-                      .sort((a, b) => a.position - b.position)
-                      .map((image, index) => (
-                        <CarouselItem key={index}>
-                          <div className="p-1">
-                            <div className="relative rounded-lg overflow-hidden aspect-square">
+            <Button 
+              onClick={openPhotoUploadDialog} 
+              className="mb-4 bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              დაამატე ახალი ფოტო
+            </Button>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {selectedRoom?.images?.map((image, index) => (
+                <div key={index} className="relative rounded-md overflow-hidden bg-gray-100 h-48 group border-2 border-gray-300 shadow-md">
                               <img 
                                 src={image.url} 
                                 alt={`${selectedRoom.name} - ფოტო ${index + 1}`} 
                                 className="w-full h-full object-cover"
                               />
-                              <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                                ფოტო {index + 1} / {selectedRoom.images.length}
+                  <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                    <div className="flex justify-end gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 bg-white bg-opacity-90 hover:bg-opacity-100"
+                        onClick={() => moveRoomPhotoUp(index)}
+                        disabled={index === 0 || photoUpdateLoading}
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 bg-white bg-opacity-90 hover:bg-opacity-100"
+                        onClick={() => moveRoomPhotoDown(index)}
+                        disabled={index === (selectedRoom.images?.length || 0) - 1 || photoUpdateLoading}
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 bg-white bg-opacity-90 hover:bg-opacity-100 hover:bg-red-100 text-red-600"
+                        onClick={() => deleteRoomPhoto(index)}
+                        disabled={photoUpdateLoading || (selectedRoom.images?.length || 0) <= 1}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                               </div>
+                    <div className="bg-black bg-opacity-80 text-white text-sm p-1 rounded">
+                      {index === 0 ? "მთავარი ფოტო" : `ფოტო ${index + 1}`}
                             </div>
                           </div>
-                        </CarouselItem>
-                      ))
-                  ) : (
-                    <CarouselItem>
-                      <div className="p-1">
-                        <div className="relative rounded-lg overflow-hidden aspect-square">
-                          <img 
-                            src={selectedRoom.imageUrl} 
-                            alt={selectedRoom.name} 
-                            className="w-full h-full object-cover"
-                          />
                         </div>
+              ))}
                       </div>
-                    </CarouselItem>
-                  )}
-                </CarouselContent>
-                <CarouselPrevious />
-                <CarouselNext />
-              </Carousel>
             </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setImagesDialogOpen(false)}>
-              დახურვა
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ფასის რედაქტირების დიალოგი */}
-      <Dialog open={priceDialogOpen} onOpenChange={setPriceDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={photoUploadDialogOpen} onOpenChange={setPhotoUploadDialogOpen}>
+        <DialogContent className="bg-white border-2 shadow-lg">
           <DialogHeader>
-            <DialogTitle>ფასის რედაქტირება</DialogTitle>
-            <DialogDescription>
-              შეცვალეთ ოთახის "{roomToEdit?.name}" ფასი
+            <DialogTitle className="text-xl">ფოტოს დამატება</DialogTitle>
+            <DialogDescription className="text-gray-700">
+              აირჩიე ფოტო ასატვირთად
             </DialogDescription>
           </DialogHeader>
           
-          <div className="my-6">
-            <Label htmlFor="price">ახალი ფასი (ლარი)</Label>
-            <Input
-              id="price"
-              type="number"
-              min="0"
-              step="0.01"
-              value={newPrice}
-              onChange={(e) => setNewPrice(e.target.value)}
-              className="mt-2"
+          <div className="mt-4">
+            <UploadForm
+              title="ფოტოს ატვირთვა"
+              description={`აირჩიეთ ფოტო ოთახისთვის "${selectedRoom?.name}"`}
+              path="rooms"
+              onUploadComplete={handlePhotoUpload}
             />
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Price Edit Dialog */}
+      <Dialog open={priceDialogOpen} onOpenChange={setPriceDialogOpen}>
+        <DialogContent className="bg-white border-2 shadow-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl">ფასის შეცვლა</DialogTitle>
+            <DialogDescription className="text-gray-700">
+              შეცვალეთ ოთახის ფასი
+            </DialogDescription>
+          </DialogHeader>
+          
+          {roomToEdit && (
+            <div className="py-4 space-y-4">
+              <div>
+                <p className="font-medium">{roomToEdit.name}</p>
+                <p className="text-gray-600">მიმდინარე ფასი: {roomToEdit.price} ₾</p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="new-price">ახალი ფასი (₾)</Label>
+            <Input
+                  id="new-price"
+              type="number"
+              min="0"
+                  step="1"
+              value={newPrice}
+              onChange={(e) => setNewPrice(e.target.value)}
+                  className="border-2 border-gray-300"
+            />
+          </div>
+            </div>
+          )}
           
           <DialogFooter>
             <Button 
               variant="outline" 
               onClick={() => setPriceDialogOpen(false)}
-              disabled={updatingPrice}
+              className="bg-white border-gray-300 hover:bg-gray-100"
             >
               გაუქმება
             </Button>
             <Button
               onClick={handleUpdatePrice}
               disabled={updatingPrice}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
             >
               {updatingPrice ? (
                 <>
-                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent"></div>
-                  მიმდინარეობს განახლება...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  განახლება...
                 </>
               ) : (
-                'განახლება'
+                "განახლება"
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ოთახის პარამეტრების რედაქტირების დიალოგი */}
+      {/* Room Settings Dialog */}
       <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="bg-white border-2 shadow-lg">
           <DialogHeader>
-            <DialogTitle>ოთახის პარამეტრები</DialogTitle>
-            <DialogDescription>
-              შეცვალეთ ოთახის "{roomToEdit?.name}" პარამეტრები
+            <DialogTitle className="text-xl">ოთახის პარამეტრები</DialogTitle>
+            <DialogDescription className="text-gray-700">
+              შეცვალეთ ოთახის მახასიათებლები
             </DialogDescription>
           </DialogHeader>
           
-          <div className="my-6 space-y-4">
+          {roomToEdit && (
+            <div className="py-4 space-y-4">
             <div>
-              <Label htmlFor="extra-beds">დამატებითი საწოლები</Label>
+                <p className="font-medium">{roomToEdit.name}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="extra-beds">დამატებითი საწოლების რაოდენობა</Label>
+                <div className="flex items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNewExtraBeds(Math.max(0, parseInt(newExtraBeds) - 1).toString())}
+                    disabled={parseInt(newExtraBeds) <= 0}
+                    className="h-8 w-8 bg-white border-gray-300"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
               <Input
                 id="extra-beds"
                 type="number"
                 min="0"
                 value={newExtraBeds}
                 onChange={(e) => setNewExtraBeds(e.target.value)}
-                className="mt-2"
+                    className="mx-2 text-center border-2 border-gray-300"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                დამატებითი საწოლების რაოდენობა (მაგ: 4+2 extra bed)
-              </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNewExtraBeds((parseInt(newExtraBeds) + 1).toString())}
+                    className="h-8 w-8 bg-white border-gray-300"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
             </div>
             
-            <div>
-              <Label htmlFor="min-booking-beds">მინიმალური დასაჯავშნი საწოლები</Label>
+              <div className="space-y-2">
+                <Label htmlFor="min-booking-beds">მინიმალური დასაჯავშნი საწოლების რ-ბა</Label>
+                <div className="flex items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNewMinBookingBeds(Math.max(1, parseInt(newMinBookingBeds) - 1).toString())}
+                    disabled={parseInt(newMinBookingBeds) <= 1}
+                    className="h-8 w-8 bg-white border-gray-300"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
               <Input
                 id="min-booking-beds"
                 type="number"
                 min="1"
                 value={newMinBookingBeds}
                 onChange={(e) => setNewMinBookingBeds(e.target.value)}
-                className="mt-2"
+                    className="mx-2 text-center border-2 border-gray-300"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                მინიმუმ რამდენი საწოლის დაჯავშნა არის შესაძლებელი
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNewMinBookingBeds((parseInt(newMinBookingBeds) + 1).toString())}
+                    disabled={parseInt(newMinBookingBeds) >= roomToEdit.beds}
+                    className="h-8 w-8 bg-white border-gray-300"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500">
+                  მინ. საწოლების რ-ბა არ უნდა აღემატებოდეს ძირითადი საწოლების რ-ბას ({roomToEdit.beds})
               </p>
             </div>
           </div>
+          )}
           
           <DialogFooter>
             <Button 
               variant="outline" 
               onClick={() => setSettingsDialogOpen(false)}
-              disabled={updatingSettings}
+              className="bg-white border-gray-300 hover:bg-gray-100"
             >
               გაუქმება
             </Button>
             <Button
               onClick={handleUpdateSettings}
               disabled={updatingSettings}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
             >
               {updatingSettings ? (
                 <>
-                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent"></div>
-                  მიმდინარეობს განახლება...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  განახლება...
                 </>
               ) : (
-                'განახლება'
+                "განახლება"
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* საწოლების ფასების დიალოგი */}
+      {/* Bed Prices Dialog */}
       <Dialog open={bedPricesDialogOpen} onOpenChange={setBedPricesDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-white border-2 shadow-lg">
           <DialogHeader>
-            <DialogTitle>საწოლების ფასების კონფიგურაცია</DialogTitle>
+            <DialogTitle className="text-xl">საწოლების ფასები</DialogTitle>
+            <DialogDescription className="text-gray-700">
+              სხვადასხვა რაოდენობის საწოლებისთვის ფასების კონფიგურაცია
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          
             {roomToEdit && (
-              <div className="mb-4">
-                <h3 className="font-medium">{roomToEdit.name}</h3>
-                <p className="text-sm text-gray-500">
-                  საწოლები: {roomToEdit.beds}, 
-                  დამატებითი: {roomToEdit.extraBeds || 0}, 
-                  მინ. დასაჯავშნი: {roomToEdit.minBookingBeds || 1}
+            <div className="py-4 space-y-4">
+              <div>
+                <p className="font-medium">{roomToEdit.name}</p>
+                <p className="text-gray-600">
+                  ძირითადი საწოლები: {roomToEdit.beds}, 
+                  დამატებითი: {roomToEdit.extraBeds || 0}
                 </p>
-                <p className="text-sm text-gray-500">
-                  ძირითადი ფასი: {roomToEdit.price} ლარი
+                <p className="text-gray-600">
+                  ძირითადი ფასი: {roomToEdit.price} ₾
                 </p>
               </div>
-            )}
+              
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label>საწოლების მიხედვით ფასები</Label>
+                  <Label>საწოლების ფასები</Label>
                 <Button 
                   type="button" 
-                  size="sm" 
                   variant="outline"
+                    size="sm"
                   onClick={addBedPrice}
+                    className="bg-white border-gray-300 hover:bg-gray-100"
                 >
-                  <Plus className="h-4 w-4 mr-1" /> დამატება
+                    <Plus className="h-3 w-3 mr-1" />
+                    დამატება
                 </Button>
               </div>
               
               {bedPrices.length === 0 ? (
-                <p className="text-sm text-gray-500">
-                  ფასები საწოლების მიხედვით არ არის კონფიგურირებული. გამოყენებული იქნება ძირითადი ფასი.
+                  <p className="text-sm text-gray-500 italic">
+                    საწოლების ფასები არ არის დაკონფიგურირებული. 
+                    თუ არ დაამატებთ, გამოყენებული იქნება ძირითადი ფასი.
                 </p>
               ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  <div className="space-y-2 border rounded-md p-3 bg-gray-50">
                   {bedPrices.map((bedPrice, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="w-24">
+                      <div key={index} className="flex items-center space-x-2">
+                        <div className="flex-1">
+                          <Label htmlFor={`bed-count-${index}`} className="text-xs">საწოლები</Label>
                         <Input
+                            id={`bed-count-${index}`}
                           type="number"
+                            min={roomToEdit.minBookingBeds || 1}
+                            max={(roomToEdit.beds || 2) + (roomToEdit.extraBeds || 0)}
                           value={bedPrice.beds}
-                          min={roomToEdit?.minBookingBeds || 1}
-                          max={(roomToEdit?.beds || 0) + (roomToEdit?.extraBeds || 0)}
                           onChange={(e) => updateBedPriceValue(index, 'beds', parseInt(e.target.value))}
-                          className="h-8"
+                            className="border-2 border-gray-300"
                         />
                       </div>
-                      <span>საწოლი</span>
                       <div className="flex-1">
+                          <Label htmlFor={`bed-price-${index}`} className="text-xs">ფასი (₾)</Label>
                         <Input
+                            id={`bed-price-${index}`}
                           type="number"
+                            min="0"
+                            step="1"
                           value={bedPrice.price}
-                          min={0}
                           onChange={(e) => updateBedPriceValue(index, 'price', parseInt(e.target.value))}
-                          className="h-8"
+                            className="border-2 border-gray-300"
                         />
                       </div>
-                      <span>ლარი</span>
                       <Button 
                         type="button" 
                         variant="ghost" 
                         size="icon" 
                         onClick={() => removeBedPrice(index)}
-                        className="h-8 w-8"
+                          className="mt-4 text-red-500 hover:text-red-700 hover:bg-red-50"
                       >
-                        <Minus className="h-4 w-4 text-red-500" />
+                          <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
                 </div>
               )}
+                
+                <p className="text-sm text-gray-500">
+                  შეგიძლიათ დააკონფიგურიროთ სხვადასხვა რაოდენობის საწოლებისთვის სხვადასხვა ფასი.
+                </p>
             </div>
           </div>
+          )}
+          
           <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
+            <Button 
+              variant="outline" 
+              onClick={() => setBedPricesDialogOpen(false)}
+              className="bg-white border-gray-300 hover:bg-gray-100"
+            >
                 გაუქმება
               </Button>
-            </DialogClose>
             <Button
               onClick={handleUpdateBedPrices}
               disabled={updatingBedPrices}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
             >
               {updatingBedPrices ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  მიმდინარეობს...
+                  განახლება...
                 </>
               ) : (
-                "შენახვა"
+                "განახლება"
               )}
             </Button>
           </DialogFooter>

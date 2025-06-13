@@ -198,4 +198,54 @@ export async function fetchBookings() {
     console.error('Error fetching bookings:', error);
     return [];
   }
+}
+
+/**
+ * მთავარი გვერდის სექციების სურათების წამოღება
+ */
+export async function fetchHomeSectionImages() {
+  try {
+    // ყველა საჭირო სექციის სია
+    const sections = ['hero', 'slider', 'story', 'largePhoto', 'guestReview'];
+    
+    // პარალელურად წამოვიღოთ ყველა სექციის მონაცემი
+    const sectionsData = await Promise.all(
+      sections.map(async (sectionName) => {
+        try {
+          const docRef = doc(db, "sections", sectionName);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            return {
+              section: sectionName,
+              data: docSnap.data()
+            };
+          }
+          return {
+            section: sectionName,
+            data: null
+          };
+        } catch (err) {
+          console.error(`Error fetching section ${sectionName}:`, err);
+          return {
+            section: sectionName,
+            data: null,
+            error: err
+          };
+        }
+      })
+    );
+    
+    // ობიექტად გარდავქმნათ შედეგები
+    const result: Record<string, any> = {};
+    
+    sectionsData.forEach(item => {
+      result[item.section] = item.data;
+    });
+    
+    return result;
+  } catch (error) {
+    console.error('Error fetching home section images:', error);
+    return {};
+  }
 } 

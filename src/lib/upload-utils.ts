@@ -245,8 +245,8 @@ export async function updateSliderImages(imageUrls: string[]): Promise<void> {
 }
 
 // Update story section images
-export async function updateStoryImages(imageUrls: string[]): Promise<void> {
-  await updateSectionContent("story", { imageUrls })
+export async function updateStoryImages(imageUrl: string): Promise<void> {
+  await updateSectionContent("story", { imageUrl })
 }
 
 // Update large photo below story
@@ -310,6 +310,217 @@ export async function updateRoomBedPrices(
     await updateDoc(docRef, { bedPrices });
   } catch (error) {
     console.error("Error updating room bed prices:", error);
+    throw error;
+  }
+}
+
+// წაშალე hero სექციის სურათი
+export async function deleteHeroImage(): Promise<void> {
+  try {
+    const docRef = doc(db, "sections", "hero");
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists() && docSnap.data().imageUrl) {
+      const imageUrl = docSnap.data().imageUrl;
+      
+      // წავშალოთ ფაილი Firebase Storage-დან, თუ შესაძლებელია
+      try {
+        await deleteImageFromStorage(imageUrl);
+      } catch (error) {
+        console.error("Error deleting hero image file:", error);
+        // გავაგრძელოთ მაინც, რადგან დოკუმენტიდან ინფორმაცია უნდა წავშალოთ
+      }
+      
+      // წავშალოთ სურათის URL დოკუმენტიდან
+      await updateDoc(docRef, { imageUrl: null });
+    }
+  } catch (error) {
+    console.error("Error deleting hero image:", error);
+    throw error;
+  }
+}
+
+// წაშალე slider სურათი
+export async function deleteSliderImage(index: number): Promise<void> {
+  try {
+    const docRef = doc(db, "sections", "slider");
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists() && docSnap.data().imageUrls && Array.isArray(docSnap.data().imageUrls)) {
+      const imageUrls = docSnap.data().imageUrls;
+      
+      // თუ ინდექსი არ არის მასივის ფარგლებში, შეცდომას ვაბრუნებთ
+      if (index < 0 || index >= imageUrls.length) {
+        throw new Error(`Invalid index: ${index} for slider images array of length ${imageUrls.length}`);
+      }
+      
+      // წავშალოთ ფაილი Firebase Storage-დან, თუ შესაძლებელია
+      try {
+        await deleteImageFromStorage(imageUrls[index]);
+      } catch (error) {
+        console.error(`Error deleting slider image file at index ${index}:`, error);
+        // გავაგრძელოთ მაინც, რადგან მასივიდან ელემენტი უნდა წავშალოთ
+      }
+      
+      // წავშალოთ სურათი მასივიდან
+      const updatedImageUrls = [...imageUrls];
+      updatedImageUrls.splice(index, 1);
+      
+      // განვაახლოთ დოკუმენტი
+      await updateDoc(docRef, { imageUrls: updatedImageUrls });
+    }
+  } catch (error) {
+    console.error("Error deleting slider image:", error);
+    throw error;
+  }
+}
+
+// წაშალე ყველა slider სურათი
+export async function deleteAllSliderImages(): Promise<void> {
+  try {
+    const docRef = doc(db, "sections", "slider");
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists() && docSnap.data().imageUrls && Array.isArray(docSnap.data().imageUrls)) {
+      const imageUrls = docSnap.data().imageUrls;
+      
+      // ვეცადოთ ყველა ფაილის წაშლა Storage-დან
+      for (const url of imageUrls) {
+        try {
+          await deleteImageFromStorage(url);
+        } catch (error) {
+          console.error("Error deleting slider image file:", error);
+          // გავაგრძელოთ მაინც, სხვა ფაილების წასაშლელად
+        }
+      }
+      
+      // განვაახლოთ დოკუმენტი ცარიელი მასივით
+      await updateDoc(docRef, { imageUrls: [] });
+    }
+  } catch (error) {
+    console.error("Error deleting all slider images:", error);
+    throw error;
+  }
+}
+
+// წაშალე story სექციის სურათი
+export async function deleteStoryImage(): Promise<void> {
+  try {
+    const docRef = doc(db, "sections", "story");
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists() && docSnap.data().imageUrl) {
+      const imageUrl = docSnap.data().imageUrl;
+      
+      // წავშალოთ ფაილი Firebase Storage-დან, თუ შესაძლებელია
+      try {
+        await deleteImageFromStorage(imageUrl);
+      } catch (error) {
+        console.error("Error deleting story image file:", error);
+        // გავაგრძელოთ მაინც, რადგან დოკუმენტიდან ინფორმაცია უნდა წავშალოთ
+      }
+      
+      // წავშალოთ სურათის URL დოკუმენტიდან
+      await updateDoc(docRef, { imageUrl: null });
+    }
+  } catch (error) {
+    console.error("Error deleting story image:", error);
+    throw error;
+  }
+}
+
+// წაშალე largePhoto სურათი
+export async function deleteLargePhoto(): Promise<void> {
+  try {
+    const docRef = doc(db, "sections", "largePhoto");
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists() && docSnap.data().imageUrl) {
+      const imageUrl = docSnap.data().imageUrl;
+      
+      // წავშალოთ ფაილი Firebase Storage-დან, თუ შესაძლებელია
+      try {
+        await deleteImageFromStorage(imageUrl);
+      } catch (error) {
+        console.error("Error deleting large photo file:", error);
+        // გავაგრძელოთ მაინც, რადგან დოკუმენტიდან ინფორმაცია უნდა წავშალოთ
+      }
+      
+      // წავშალოთ სურათის URL დოკუმენტიდან
+      await updateDoc(docRef, { imageUrl: null });
+    }
+  } catch (error) {
+    console.error("Error deleting large photo:", error);
+    throw error;
+  }
+}
+
+// წაშალე guestReview სურათი
+export async function deleteGuestReviewImage(): Promise<void> {
+  try {
+    const docRef = doc(db, "sections", "guestReview");
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists() && docSnap.data().imageUrl) {
+      const imageUrl = docSnap.data().imageUrl;
+      
+      // წავშალოთ ფაილი Firebase Storage-დან, თუ შესაძლებელია
+      try {
+        await deleteImageFromStorage(imageUrl);
+      } catch (error) {
+        console.error("Error deleting guest review image file:", error);
+        // გავაგრძელოთ მაინც, რადგან დოკუმენტიდან ინფორმაცია უნდა წავშალოთ
+      }
+      
+      // წავშალოთ სურათის URL დოკუმენტიდან
+      await updateDoc(docRef, { imageUrl: null });
+    }
+  } catch (error) {
+    console.error("Error deleting guest review image:", error);
+    throw error;
+  }
+}
+
+// დამხმარე ფუნქცია Firebase Storage-დან ფაილის წასაშლელად
+async function deleteImageFromStorage(imageUrl: string): Promise<void> {
+  if (!imageUrl) return;
+  
+  try {
+    // თუ URL არის სრული URL და არა Storage path
+    if (imageUrl.startsWith('https://')) {
+      // გაასწორე ორმაგი ენკოდირება %252F → %2F
+      if (imageUrl.includes('%252F')) {
+        imageUrl = imageUrl.replace(/%252F/g, '%2F');
+      }
+      
+      // გარდავქმნათ URL Storage path-ად
+      const urlObj = new URL(imageUrl);
+      const pathSegments = urlObj.pathname.split('/');
+      
+      // Firebase Storage URL ფორმატის დამუშავება: /v0/b/{bucket}/o/{encodedFilePath}
+      let path = '';
+      if (pathSegments.length > 5 && pathSegments[4] === 'o') {
+        const encodedPath = pathSegments.slice(5).join('/');
+        path = decodeURIComponent(encodedPath);
+        
+        // თუ URL-ს აქვს query პარამეტრები (alt=media, token და ა.შ.), მოვაშოროთ
+        const questionMarkIndex = path.indexOf('?');
+        if (questionMarkIndex !== -1) {
+          path = path.substring(0, questionMarkIndex);
+        }
+        
+        if (path) {
+          const storageRef = ref(storage, path);
+          await deleteObject(storageRef);
+        }
+      }
+    } else {
+      // თუ უკვე Storage path-ია
+      const storageRef = ref(storage, imageUrl);
+      await deleteObject(storageRef);
+    }
+  } catch (error) {
+    console.error("Error deleting image from storage:", error);
     throw error;
   }
 }

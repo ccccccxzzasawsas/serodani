@@ -200,7 +200,6 @@ export default function RoomsPage() {
                           {room.description && <p className="text-gray-600 leading-relaxed">{room.description}</p>}
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                             <div>
-                              <span className="text-2xl font-bold text-blue-600">{room.price} GEL</span>
                               <p className="text-gray-500">Sleeps: {room.beds} guests</p>
                             </div>
                             <Button onClick={() => openBookingDialog(room)} className="bg-blue-600 hover:bg-blue-700 text-white">Book Now</Button>
@@ -214,7 +213,6 @@ export default function RoomsPage() {
                           {room.description && <p className="text-gray-600 leading-relaxed">{room.description}</p>}
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                             <div>
-                              <span className="text-2xl font-bold text-blue-600">{room.price} GEL</span>
                               <p className="text-gray-500">Sleeps: {room.beds} guests</p>
                             </div>
                             <Button onClick={() => openBookingDialog(room)} className="bg-blue-600 hover:bg-blue-700 text-white">Book Now</Button>

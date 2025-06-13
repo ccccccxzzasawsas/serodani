@@ -97,15 +97,25 @@ export default function ContactPage() {
                 <div className="space-y-4 text-gray-300">
                   <div className="flex items-center space-x-3">
                     <MapPin className="w-5 h-5 text-orange-400" />
-                    <span>Sighnaghi, Kakheti Region, Georgia</span>
+                    <span>Shalauri Village, Telavi, Georgia</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <Phone className="w-5 h-5 text-orange-400" />
-                    <span>+995 555 123 456</span>
+                    <span>+995 599 40 32 03</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <Mail className="w-5 h-5 text-orange-400" />
-                    <span>info@kviria.ge</span>
+                    <span>info@serodanihotel.ge</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <a href="https://maps.app.goo.gl/R8VqUVqmo4JYePJ3A" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline flex items-center">
+                      <span>View on Google Maps</span>
+                    </a>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <a href="https://serodani.ps.me" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">
+                      serodani.ps.me
+                    </a>
                   </div>
                 </div>
                 
@@ -118,7 +128,7 @@ export default function ContactPage() {
               </div>
               <div className="relative h-[550px] rounded-lg overflow-hidden">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2973.8234567890123!2d45.4928842!3d41.9062177!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x404433f8b9e2e367%3A0x7dd2cf495cd7b4f!2z4YOh4YOU4YOg4YOd4YOT4YOQ4YOc4YOY!5e0!3m2!1sen!2sge!4v1234567890123!5m2!1sen!2sge"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2976.0362900892893!2d45.444419511397876!3d41.857483605717!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40447f5eba48990f%3A0x2b74c088d3c45d0d!2sSerodani!5e0!3m2!1sen!2sge!4v1718290295321!5m2!1sen!2sge"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}

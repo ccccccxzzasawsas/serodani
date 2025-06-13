@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { User } from "lucide-react"
+import { User, MapPin } from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
 import { getDoc, doc } from "firebase/firestore"
