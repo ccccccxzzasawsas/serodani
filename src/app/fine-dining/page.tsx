@@ -454,16 +454,17 @@ export default function FineDiningPage() {
       </nav>
 
       {/* Hero Section with Brick Background */}
-      <section className="relative h-[800px] w-full">
+      <section className="relative w-full aspect-[3/4] md:aspect-video">
         <div className="absolute inset-0">
           {heroImage ? (
             <Image 
               src={heroImage} 
               alt="Restaurant – Traditional Georgian Cuisine at Hotel Serodani"
               fill
-              className="object-cover"
+              className="object-cover object-center"
               priority
               sizes="100vw"
+              quality={85}
             />
           ) : (
             <div className="bg-gray-200 h-full w-full flex items-center justify-center text-gray-500">

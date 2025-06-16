@@ -208,7 +208,7 @@ export default function WinesPage() {
       </nav>
 
       {/* Hero Section with Brick Background */}
-      <section className="relative h-[650px] w-full">
+      <section className="relative w-full aspect-[3/4] md:aspect-video">
         {heroImage ? (
           <div className="absolute inset-0">
             <Image 
@@ -218,6 +218,7 @@ export default function WinesPage() {
               className="object-cover object-center"
               priority
               sizes="100vw"
+              quality={85}
             />
             <div className="absolute inset-0 bg-black/20" />
           </div>

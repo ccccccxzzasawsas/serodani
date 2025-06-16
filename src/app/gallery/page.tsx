@@ -199,7 +199,7 @@ export default function GalleryPage() {
       </nav>
 
       {/* Hero */}
-      <div className="relative h-[70vh] w-full">
+      <div className="relative w-full aspect-[3/4] md:aspect-video">
         {/* გამოვაჩინოთ ჰერო სურათი მხოლოდ თუ ის არსებობს */}
         {heroImage ? (
           <Image
@@ -207,7 +207,7 @@ export default function GalleryPage() {
             alt="Gallery - Hotel Serodani in Kakheti, Georgia"
             fill
             priority
-            className="object-cover"
+            className="object-cover object-center"
           />
         ) : (
           <div className="bg-gray-200 h-full w-full flex items-center justify-center text-gray-500">

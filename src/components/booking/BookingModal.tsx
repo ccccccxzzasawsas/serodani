@@ -674,7 +674,7 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                             if (date) {
                               setCheckIn(date);
                               setTimeout(() => {
-                                setCheckInOpen(false);
+                              setCheckInOpen(false);
                               }, 0);
                             }
                           }}
@@ -711,7 +711,7 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                             if (date) {
                               setCheckOut(date);
                               setTimeout(() => {
-                                setCheckOutOpen(false);
+                              setCheckOutOpen(false);
                               }, 0);
                             }
                           }}

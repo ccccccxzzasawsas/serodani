@@ -202,14 +202,21 @@ export default function RoomsPage() {
         </div>
       </nav>
 
-      <section className="relative h-screen flex items-center justify-center">
+      <section className="relative flex items-center justify-center aspect-[3/4] md:aspect-video">
         <div className="absolute inset-0">
-          <Image src={heroImageUrl} alt="Wooden cottages in Georgia – Cottage Stay in Kakheti" fill className="object-cover" priority sizes="100vw" />
+          <Image 
+            src={heroImageUrl} 
+            alt="Wooden cottages in Georgia – Cottage Stay in Kakheti" 
+            fill 
+            className="object-cover object-center" 
+            priority 
+            sizes="100vw" 
+          />
           <div className="absolute inset-0 bg-black/40" />
         </div>
-        <div className="relative z-10 text-center" style={{ position: "absolute", top: "15%" }}>
-          <div className="bg-black/60 backdrop-blur-sm p-8 rounded-lg">
-            <h1 className="text-4xl font-bold">OUR WOODEN COTTAGES IN KAKHETI</h1>
+        <div className="relative z-10 text-center px-4">
+          <div className="bg-black/60 backdrop-blur-sm p-4 sm:p-8 rounded-lg">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">OUR WOODEN COTTAGES IN KAKHETI</h1>
           </div>
         </div>
       </section>

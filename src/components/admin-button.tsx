@@ -18,12 +18,13 @@ export function AdminButton() {
     return null
   }
 
+  // Use different styles for mobile vs desktop
   return (
     <Link href="/admin/dashboard">
       <Button
         variant="outline"
         size="sm"
-        className="fixed top-4 left-4 md:top-4 md:right-4 md:left-auto z-[100] bg-white/90 backdrop-blur-sm border-gray-300 hover:bg-gray-100 shadow-md"
+        className="hidden md:flex md:fixed md:top-4 md:right-4 z-[100] bg-white/90 backdrop-blur-sm border-gray-300 hover:bg-gray-100 shadow-md"
       >
         <Settings className="mr-2 h-4 w-4" />
         Admin Panel

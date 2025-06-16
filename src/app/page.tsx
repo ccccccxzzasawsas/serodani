@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MapPin, Phone, Mail, ChevronLeft, ChevronRight, Star, User, Menu, X } from "lucide-react"
+import { MapPin, Phone, Mail, ChevronLeft, ChevronRight, Star, User, Menu, X, Settings } from "lucide-react"
 import { collection, getDocs, doc, getDoc } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth"
@@ -428,19 +428,30 @@ export default function KviriaHotel() {
               >
                 CONTACT
               </a>
+              {/* Admin Panel Link for Mobile */}
+              {user && isAdmin && (
+                <Link
+                  href="/admin/dashboard"
+                  className="flex items-center py-2 text-sm text-orange-400 hover:text-orange-300"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  ADMIN PANEL
+                </Link>
+              )}
             </div>
           )}
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative h-[80vh] w-full bg-black">
+      <section className="relative w-full bg-black aspect-[3/4] md:aspect-video">
         <div className="absolute inset-0">
           <Image 
             src={heroImage} 
             alt="Hotel in Kakheti - Serodani Boutique Wooden Cottages" 
             fill 
-            className="object-cover opacity-80"
+            className="object-cover object-center opacity-80"
             loading="eager"
             priority={true}
             sizes="100vw"
@@ -449,10 +460,10 @@ export default function KviriaHotel() {
           />
         </div>
         <div className="relative z-10 flex flex-col justify-center items-center h-full">
-          <div className="text-center text-white">
-            <div className="text-6xl font-bold mb-4">Hotel Serodani
+          <div className="text-center text-white px-4">
+            <div className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4">Hotel Serodani
             </div>
-            <div className="text-3xl tracking-widest font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Wooden Cottages in the heart of Kaketi, Georgia</div>
+            <div className="text-xl sm:text-2xl md:text-3xl tracking-widest font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Wooden Cottages in the heart of Kaketi, Georgia</div>
           </div>
         </div>
         
