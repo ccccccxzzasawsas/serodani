@@ -474,7 +474,7 @@ export default function KviriaHotel() {
 
       {/* Tagline Section */}
       <section className="py-16 bg-[#242323] text-center">
-        <h1 className="text-4xl font-bold tracking-wide text-white">Hidden Paradise in Telavi</h1>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-wide text-white">Hidden Paradise in Telavi</h1>
      
         {/* ჩატვირთვის ანიმაცია ტექსტის ქვემოთ */}
         {loading && (
@@ -577,11 +577,11 @@ export default function KviriaHotel() {
               Cosy nature, Fresh air, Outdoor pools, Georgian Restaurant, our handcrafted wine and warm hospitality—Serodani is a perfect place for families, couples, and friends seeking true relaxation.
             </p>
             <p>
-              <strong className="text-xl">Cottages</strong><br />
+              <strong className="text-2xl">Cottages</strong><br />
               We offer 6 uniquely designed wooden cottages, Each one designed for comfort and privacy, ideal for romantic getaways, family trips, or a peaceful weekend with friends. Each cottage belongs to a different category and is fully equipped with all the necessary modern amenities to ensure your comfort and relaxation. Surrounded by gardens, mountain views, and fresh air—you'll feel at home the moment you arrive.
             </p>
             <p>
-              <strong className="text-xl">Food & Wine</strong><br />
+              <strong className="text-2xl">Food & Wine</strong><br />
               Our on-site restaurant serves traditional Georgian cuisine made with fresh, local ingredients. We also produce a variety of Georgian wines, aged in our own cellar. Guests are welcome to join wine tastings and learn the stories behind each bottle. With two bars—indoor and outdoor—you'll always find a perfect spot.
             </p>
             <p>
