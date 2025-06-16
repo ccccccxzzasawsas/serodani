@@ -120,8 +120,9 @@ export default function WinesPage() {
               <Button
                 variant="outline"
                 className="border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black"
+                asChild
               >
-                Book Now
+                <Link href="/rooms">Book Now</Link>
               </Button>
 
               {/* Login/User Menu */}

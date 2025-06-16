@@ -620,7 +620,6 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                                 <span className="text-sm font-semibold">{availableRoom.room.price} GEL</span>
                               </div>
                               <div className="text-sm text-gray-600 flex justify-between items-center">
-                                <span>Sleeps: {availableRoom.room.beds} guests</span>
                                 <span>Available: {availableRoom.availableCount} beds</span>
                               </div>
                             </div>

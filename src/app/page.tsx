@@ -346,8 +346,9 @@ export default function KviriaHotel() {
               <Button
                 variant="outline"
                 className="border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black"
+                asChild
               >
-                Book Now
+                <Link href="/rooms">Book Now</Link>
               </Button>
 
               {/* Login/User Menu */}
@@ -448,7 +449,7 @@ export default function KviriaHotel() {
           />
         </div>
         <div className="relative z-10 flex flex-col justify-center items-center h-full">
-          <div className="text-center">
+          <div className="text-center text-white">
             <div className="text-6xl font-bold mb-4">Hotel Serodani
             </div>
             <div className="text-3xl tracking-widest font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Wooden Cottages in the heart of Kaketi, Georgia</div>
@@ -462,7 +463,7 @@ export default function KviriaHotel() {
 
       {/* Tagline Section */}
       <section className="py-16 bg-[#242323] text-center">
-        <h1 className="text-4xl font-bold tracking-wide">Hidden Paradise in Telavi</h1>
+        <h1 className="text-4xl font-bold tracking-wide text-white">Hidden Paradise in Telavi</h1>
      
         {/* ჩატვირთვის ანიმაცია ტექსტის ქვემოთ */}
         {loading && (
@@ -473,7 +474,7 @@ export default function KviriaHotel() {
       </section>
 
       {/* Image Gallery Preview - უსასრულო სლაიდერი */}
-      <section className="py-8">
+      <section className="py-8 bg-[#242323]">
         <div className="w-full px-0 overflow-hidden">
           <div className="slider-container overflow-hidden w-full">
             <div ref={sliderTrackRef} className="slider-track flex">
@@ -556,7 +557,7 @@ export default function KviriaHotel() {
       {/* Our Story - Simplified with 3 photos */}
       <section className="py-20 bg-[#242323]">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-8">OUR STORY</h2>
+          <h2 className="text-3xl font-bold mb-8 text-white">OUR STORY</h2>
           <div className="max-w-4xl mx-auto space-y-6 text-gray-300 leading-relaxed mb-12">
             <p>
               Located in the heart of Georgia's famous wine region, Kakheti, Hotel Serodani is a peaceful hideaway in Village Shalauri, surrounded by nature. With stunning views of the Alazani Valley and Caucasus Mountains, our eco-friendly wooden cottages offer comfort, calm, and authentic Georgian charm.
@@ -619,7 +620,7 @@ export default function KviriaHotel() {
           </div>
 
           <div className="max-w-4xl mx-auto space-y-6 text-gray-300 leading-relaxed">
-            <h2 className="text-3xl font-bold mb-8 text-center">ACTIVITIES</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center text-white">ACTIVITIES</h2>
             <p>
               <strong>Outdoor swimming pools</strong><br />
               Swim in our swimming pools with stunning views of the Alazani Valley and the Caucasus Mountains.
@@ -643,7 +644,7 @@ export default function KviriaHotel() {
       {/* Gallery Section */}
       <section id="gallery" className="py-20 bg-[#242323]">
         <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-center mb-16">GALLERY</h2>
+          <h2 className="text-4xl font-bold text-center mb-16 text-white">GALLERY</h2>
           <div className="relative max-w-5xl mx-auto">
             <div className="overflow-hidden rounded-lg">
               <div className="flex transition-transform duration-500 ease-in-out"
@@ -902,10 +903,10 @@ export default function KviriaHotel() {
       {/* Contact Section */}
       <section id="contact" className="py-20 bg-[#242323]">
         <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-center mb-16">CONTACT US</h2>
+          <h2 className="text-4xl font-bold text-center mb-16 text-white">CONTACT US</h2>
           <div className="grid lg:grid-cols-2 gap-12">
             <div>
-              <h3 className="text-xl font-semibold mb-6">Address</h3>
+              <h3 className="text-xl font-semibold mb-6 text-white">Address</h3>
               <div className="space-y-4 text-gray-300">
                 <div className="flex items-center space-x-3">
                   <MapPin className="w-5 h-5 text-orange-400" />
@@ -936,7 +937,7 @@ export default function KviriaHotel() {
                   </a>
                 </div>
               </div>
-              <h3 className="text-xl font-semibold mb-6 mt-8">Contact</h3>
+              <h3 className="text-xl font-semibold mb-6 mt-8 text-white">Contact</h3>
               <p className="text-gray-300">
                 For reservations and inquiries, please contact us directly or use our online booking system.
               </p>

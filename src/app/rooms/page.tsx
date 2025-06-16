@@ -281,7 +281,7 @@ export default function RoomsPage() {
                           {room.description && <p className="text-gray-600 leading-relaxed">{room.description}</p>}
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                             <div>
-                              <p className="text-gray-500">Sleeps: {room.beds} guests</p>
+                              {/* Removed "Sleeps: X guests" text */}
                             </div>
                             <Button onClick={() => openBookingDialog(room)} className="bg-blue-600 hover:bg-blue-700 text-white">Book Now</Button>
                           </div>
