@@ -137,7 +137,7 @@ export default function RoomsPage() {
           <Image src={heroImageUrl} alt="Wooden cottages in Georgia – Cottage Stay in Kakheti" fill className="object-cover" priority sizes="100vw" />
           <div className="absolute inset-0 bg-black/40" />
         </div>
-        <div className="relative z-10 text-center">
+        <div className="relative z-10 text-center" style={{ position: "absolute", top: "15%" }}>
           <div className="bg-black/60 backdrop-blur-sm p-8 rounded-lg">
             <h1 className="text-4xl font-bold">OUR WOODEN COTTAGES IN KAKHETI</h1>
           </div>
