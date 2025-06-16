@@ -279,9 +279,7 @@ export default function GalleryPage() {
           </div>
         )}
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-center">
-            Gallery
-          </h1>
+          {/* Text removed */}
         </div>
       </div>
 
