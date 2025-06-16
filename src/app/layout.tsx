@@ -13,10 +13,20 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Cottage Stay in Kakheti | Hotel Serodani",
     description: "Relax in wooden cottages, enjoy Georgian wine and discover the best boutique hotel experience in Kakheti.",
+    images: [
+      {
+        url: 'https://www.serodani.ge/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Hotel Serodani in Kakheti, Georgia',
+      },
+    ],
   },
   twitter: {
+    card: 'summary_large_image',
     title: "Cottage Stay in Kakheti | Hotel Serodani",
     description: "Relax in wooden cottages, enjoy Georgian wine and discover the best boutique hotel experience in Kakheti.",
+    images: ['https://www.serodani.ge/og-image.png'],
   },
   keywords: "Hotel in Kakheti, Best Hotels in Kakheti, Kakheti boutique hotel, Nature hotel in Georgia, Cottage stay Kakheti, Wooden cottages in Georgia, Cottage in Kakheti, Georgian countryside hotel, Wine hotel Georgia, Hotels in Telavi, Where to stay in Kakheti, Relaxing weekend getaway from Tbilisi",
 }

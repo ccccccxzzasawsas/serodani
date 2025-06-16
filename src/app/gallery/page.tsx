@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth"
-import { User, X } from "lucide-react"
+import { User, X, Menu } from "lucide-react"
 import Link from "next/link"
 import { collection, getDoc, doc, getDocs } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
@@ -17,6 +17,7 @@ export default function GalleryPage() {
   const [heroImage, setHeroImage] = useState<string | null>(null) // დეფოლტად არ ვაყენებთ ლოკალურ სურათს
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // გავასუფთავოთ ბრაუზერის ქეში სურათებიდან
@@ -136,7 +137,20 @@ export default function GalleryPage() {
       <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-sm text-white">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex space-x-8">
+            {/* Mobile menu button */}
+            <button 
+              className="lg:hidden focus:outline-none"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6 text-orange-400" />
+              ) : (
+                <Menu className="w-6 h-6 text-orange-400" />
+              )}
+            </button>
+            
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex lg:space-x-8">
               <a href="/" className="text-sm hover:text-orange-400 transition-colors">
                 HOME
               </a>
@@ -156,6 +170,7 @@ export default function GalleryPage() {
                 CONTACT
               </a>
             </div>
+
             <div className="flex items-center space-x-4">
               <Button
                 variant="outline"
@@ -170,7 +185,7 @@ export default function GalleryPage() {
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2 text-sm">
                     <User className="w-4 h-4" />
-                    <span>{user.displayName || user.email}</span>
+                    <span className="hidden sm:inline">{user.displayName || user.email}</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -178,7 +193,8 @@ export default function GalleryPage() {
                     onClick={handleSignOut}
                     className="text-orange-400 hover:text-orange-300"
                   >
-                    Sign Out
+                    <span className="hidden sm:inline">Sign Out</span>
+                    <X className="sm:hidden w-4 h-4" />
                   </Button>
                 </div>
               ) : (
@@ -189,12 +205,60 @@ export default function GalleryPage() {
                     className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10"
                   >
                     <User className="mr-2 h-4 w-4" />
-                    Login
+                    <span className="hidden sm:inline">Login</span>
                   </Button>
                 </Link>
               )}
             </div>
           </div>
+
+          {/* Mobile Navigation */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden pt-4 pb-2 space-y-2 border-t border-gray-700 mt-4">
+              <a 
+                href="/" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                HOME
+              </a>
+              <a 
+                href="/rooms" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                COTTAGES
+              </a>
+              <a 
+                href="/gallery" 
+                className="block py-2 text-sm text-orange-400"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                GALLERY
+              </a>
+              <a 
+                href="/fine-dining" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                RESTAURANT
+              </a>
+              <a 
+                href="/wines" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                WINE
+              </a>
+              <a 
+                href="/contact" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                CONTACT
+              </a>
+            </div>
+          )}
         </div>
       </nav>
 

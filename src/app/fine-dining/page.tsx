@@ -14,7 +14,7 @@ import { getDownloadURL, ref } from "firebase/storage"
 export default function FineDiningPage() {
   const { user, signOut } = useAuth()
   const [loading, setLoading] = useState(true)
-  const [heroImage, setHeroImage] = useState("")
+  const [heroImage, setHeroImage] = useState<string | null>(null)
   const [diningImages, setDiningImages] = useState<string[]>([])
   const [menuImage, setMenuImage] = useState("")
   const [menuImages, setMenuImages] = useState<string[]>([])
@@ -287,40 +287,30 @@ export default function FineDiningPage() {
 
   // ფუნქცია მენიუს ფოტოების სანავიგაციოდ
   const nextMenuImage = () => {
-    if (menuImages.length > 0) {
-      setCurrentMenuIndex((prev) => (prev + 1) % menuImages.length);
-    }
+    setCurrentMenuIndex((prevIndex) =>
+      prevIndex === menuImages.length - 1 ? 0 : prevIndex + 1
+    );
   };
 
   const prevMenuImage = () => {
-    if (menuImages.length > 0) {
-      setCurrentMenuIndex((prev) => (prev - 1 + menuImages.length) % menuImages.length);
-    }
+    setCurrentMenuIndex((prevIndex) =>
+      prevIndex === 0 ? menuImages.length - 1 : prevIndex - 1
+    );
   };
 
   // მოდალში ფოტოების ნავიგაციისთვის
   const nextModalImage = () => {
-    if (selectedImageContext === 'menu') {
-      const newIndex = (selectedImageIndex + 1) % menuImages.length;
-      setSelectedImageIndex(newIndex);
-      setSelectedImage(menuImages[newIndex]);
-    } else if (selectedImageContext === 'dining') {
-      const newIndex = (selectedImageIndex + 1) % diningImages.length;
-      setSelectedImageIndex(newIndex);
-      setSelectedImage(diningImages[newIndex]);
-    }
+    const imageList = selectedImageContext === 'menu' ? menuImages : diningImages;
+    const nextIndex = (selectedImageIndex + 1) % imageList.length;
+    setSelectedImageIndex(nextIndex);
+    setSelectedImage(imageList[nextIndex]);
   };
 
   const prevModalImage = () => {
-    if (selectedImageContext === 'menu') {
-      const newIndex = (selectedImageIndex - 1 + menuImages.length) % menuImages.length;
-      setSelectedImageIndex(newIndex);
-      setSelectedImage(menuImages[newIndex]);
-    } else if (selectedImageContext === 'dining') {
-      const newIndex = (selectedImageIndex - 1 + diningImages.length) % diningImages.length;
-      setSelectedImageIndex(newIndex);
-      setSelectedImage(diningImages[newIndex]);
-    }
+    const imageList = selectedImageContext === 'menu' ? menuImages : diningImages;
+    const prevIndex = (selectedImageIndex - 1 + imageList.length) % imageList.length;
+    setSelectedImageIndex(prevIndex);
+    setSelectedImage(imageList[prevIndex]);
   };
 
   return (

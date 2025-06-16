@@ -1,14 +1,16 @@
 "use client"
 
-import { MapPin, Phone, Mail, User } from "lucide-react"
+import { MapPin, Phone, Mail, User, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
 import { Footer } from "@/components/Footer"
+import { useState } from "react"
 
 export default function ContactPage() {
   const { user, signOut } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleSignOut = async () => {
     try {
@@ -24,7 +26,20 @@ export default function ContactPage() {
       <nav className="fixed top-0 w-full z-50 bg-[#242323]/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex space-x-8">
+            {/* Mobile menu button */}
+            <button
+              className="lg:hidden focus:outline-none"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6 text-orange-400" />
+              ) : (
+                <Menu className="w-6 h-6 text-orange-400" />
+              )}
+            </button>
+            
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex lg:space-x-8">
               <a href="/" className="text-sm hover:text-orange-400 transition-colors">
                 HOME
               </a>
@@ -58,7 +73,7 @@ export default function ContactPage() {
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2 text-sm">
                     <User className="w-4 h-4" />
-                    <span>{user.displayName || user.email}</span>
+                    <span className="hidden sm:inline">{user.displayName || user.email}</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -66,7 +81,8 @@ export default function ContactPage() {
                     onClick={handleSignOut}
                     className="text-orange-400 hover:text-orange-300"
                   >
-                    Sign Out
+                    <span className="hidden sm:inline">Sign Out</span>
+                    <X className="sm:hidden w-4 h-4" />
                   </Button>
                 </div>
               ) : (
@@ -77,12 +93,60 @@ export default function ContactPage() {
                     className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10"
                   >
                     <User className="mr-2 h-4 w-4" />
-                    Login
+                    <span className="hidden sm:inline">Login</span>
                   </Button>
                 </Link>
               )}
             </div>
           </div>
+          
+          {/* Mobile Navigation */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden pt-4 pb-2 space-y-2 border-t border-gray-700 mt-4">
+              <a 
+                href="/" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                HOME
+              </a>
+              <a 
+                href="/rooms" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                COTTAGES
+              </a>
+              <a 
+                href="/gallery" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                GALLERY
+              </a>
+              <a 
+                href="/fine-dining" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                RESTAURANT
+              </a>
+              <a 
+                href="/wines" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                WINE
+              </a>
+              <a 
+                href="/contact" 
+                className="block py-2 text-sm text-orange-400"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                CONTACT
+              </a>
+            </div>
+          )}
         </div>
       </nav>
 
