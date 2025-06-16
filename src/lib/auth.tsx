@@ -10,8 +10,10 @@ import {
   type User,
 } from "firebase/auth"
 import { doc, getDoc, setDoc } from "firebase/firestore"
-import { app, googleProvider, db } from "./firebase"
+import { app, googleProvider, db, rtdb } from "./firebase"
 import { initializeCollections } from "./init-collections"
+import { ref, set } from "firebase/database"
+import { encodeEmail } from "./realtimeDb"
 
 interface AuthContextType {
   user: User | null
@@ -62,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDoc = await getDoc(doc(db, "users", user.uid))
 
       if (!userDoc.exists()) {
-        await setDoc(doc(db, "users", user.uid), {
+        const userData = {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
@@ -70,22 +72,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           createdAt: new Date(),
           lastLogin: new Date(),
           isAdmin: false,
-        })
+        };
+
+        // შევინახოთ Firestore-ში
+        await setDoc(doc(db, "users", user.uid), userData);
+        
+        // ასევე შევინახოთ Realtime Database-ში
+        await set(ref(rtdb, `users/${user.uid}`), {
+          ...userData,
+          createdAt: userData.createdAt.toISOString(),
+          lastLogin: userData.lastLogin.toISOString(),
+        });
       } else {
+        // Update last login in Firestore
         await setDoc(
           doc(db, "users", user.uid),
           {
             lastLogin: new Date(),
           },
           { merge: true },
-        )
+        );
+        
+        // Update last login in Realtime Database
+        await set(
+          ref(rtdb, `users/${user.uid}/lastLogin`),
+          new Date().toISOString()
+        );
       }
 
       if (user.email) {
         const userEmailDoc = await getDoc(doc(db, "users", user.email))
         
         if (!userEmailDoc.exists()) {
-          await setDoc(doc(db, "users", user.email), {
+          const userData = {
             uid: user.uid,
             email: user.email,
             displayName: user.displayName,
@@ -93,15 +112,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             createdAt: new Date(),
             lastLogin: new Date(),
             isAdmin: false,
-          })
+          };
+          
+          // შევინახოთ Firestore-ში
+          await setDoc(doc(db, "users", user.email), userData);
+          
+          // ასევე შევინახოთ Realtime Database-ში (დავენკოდოთ email)
+          const encodedEmail = encodeEmail(user.email);
+          await set(ref(rtdb, `users/${encodedEmail}`), {
+            ...userData,
+            createdAt: userData.createdAt.toISOString(),
+            lastLogin: userData.lastLogin.toISOString(),
+          });
         } else {
+          // Update last login in Firestore
           await setDoc(
             doc(db, "users", user.email),
             {
               lastLogin: new Date(),
             },
             { merge: true },
-          )
+          );
+          
+          // Update last login in Realtime Database (დავენკოდოთ email)
+          const encodedEmail = encodeEmail(user.email);
+          await set(
+            ref(rtdb, `users/${encodedEmail}/lastLogin`),
+            new Date().toISOString()
+          );
         }
       }
     } catch (error) {

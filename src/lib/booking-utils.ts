@@ -38,8 +38,8 @@ export const checkFirestoreBookingOverlap = async (
         for (const doc of bookingsSnapshot.docs) {
             const booking = doc.data();
             
-            // გამოვტოვოთ გაუქმებული ჯავშნები (ამას კოდში ვამოწმებთ ინდექსის მაგივრად)
-            if (booking.status === "cancelled") {
+            // გამოვტოვოთ გაუქმებული და დასრულებული ჯავშნები (ამას კოდში ვამოწმებთ ინდექსის მაგივრად)
+            if (booking.status === "cancelled" || booking.status === "completed") {
                 continue;
             }
             
@@ -219,7 +219,7 @@ export const checkRoomAvailability = async (
 
         const allBookings = await getAllBookingsFromRealtime();
         const activeBookingsForRoom = allBookings.filter(
-            b => b.roomId === roomId && b.status !== 'cancelled'
+            b => b.roomId === roomId && b.status !== 'cancelled' && b.status !== 'completed'
         );
 
         const checkInDate = new Date(checkIn);
@@ -359,7 +359,7 @@ export const getAvailableRooms = async (
         
         // მივიღოთ ყველა აქტიური ჯავშანი
         const allBookings = await getAllBookingsFromRealtime();
-        const activeBookings = allBookings.filter(b => b.status !== 'cancelled');
+        const activeBookings = allBookings.filter(b => b.status !== 'cancelled' && b.status !== 'completed');
         
         const checkInDate = new Date(checkIn);
         const checkOutDate = new Date(checkOut);

@@ -1,5 +1,7 @@
 import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore"
-import { db } from "./firebase"
+import { db, rtdb } from "./firebase"
+import { ref, set } from "firebase/database"
+import { encodeEmail } from "./realtimeDb"
 
 // Initialize required collections and documents
 export async function initializeCollections() {
@@ -84,30 +86,52 @@ export async function initializeCollections() {
 // Function to add admin user
 export async function addAdminUser(email: string) {
   try {
-    await setDoc(doc(db, "admins", email), {
+    const adminData = {
       email,
       isAdmin: true,
       createdAt: new Date(),
-    })
-    console.log(`Added admin user: ${email}`)
+    };
+    
+    // შევინახოთ Firestore-ში
+    await setDoc(doc(db, "admins", email), adminData);
+    
+    // ასევე შევინახოთ Realtime Database-ში (დავენკოდოთ email)
+    const encodedEmail = encodeEmail(email);
+    await set(ref(rtdb, `admins/${encodedEmail}`), {
+      ...adminData,
+      createdAt: adminData.createdAt.toISOString(),
+    });
+    
+    console.log(`Added admin user: ${email}`);
   } catch (error) {
-    console.error("Error adding admin user:", error)
-    throw error
+    console.error("Error adding admin user:", error);
+    throw error;
   }
 }
 
 // Function to remove admin user
 export async function removeAdminUser(email: string) {
   try {
-    await setDoc(doc(db, "admins", email), {
+    const adminData = {
       email,
       isAdmin: false,
       updatedAt: new Date(),
-    })
-    console.log(`Removed admin user: ${email}`)
+    };
+    
+    // განვაახლოთ Firestore-ში
+    await setDoc(doc(db, "admins", email), adminData);
+    
+    // ასევე განვაახლოთ Realtime Database-ში (დავენკოდოთ email)
+    const encodedEmail = encodeEmail(email);
+    await set(ref(rtdb, `admins/${encodedEmail}`), {
+      ...adminData,
+      updatedAt: adminData.updatedAt.toISOString(),
+    });
+    
+    console.log(`Removed admin user: ${email}`);
   } catch (error) {
-    console.error("Error removing admin user:", error)
-    throw error
+    console.error("Error removing admin user:", error);
+    throw error;
   }
 }
 

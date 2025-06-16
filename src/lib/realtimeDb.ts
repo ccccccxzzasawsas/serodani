@@ -1,13 +1,15 @@
 import { ref, set, get, update, remove, onValue, off, push, child, query, orderByChild, equalTo } from "firebase/database";
 import { rtdb } from "./firebase";
 import { Booking, Room } from "@/types";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "./firebase";
 
 // ჯავშნების შენახვა Realtime Database-ში
 export const saveBookingToRealtime = async (booking: Omit<Booking, 'id'>) => {
   try {
     // შევამოწმოთ ამ ჯავშანში მოთხოვნილი რაოდენობის ოთახები არის თუ არა ხელმისაწვდომი
     const roomBookings = await getBookingsByRoomFromRealtime(booking.roomId);
-    const activeBookings = roomBookings.filter(b => b.status !== 'cancelled');
+    const activeBookings = roomBookings.filter(b => b.status !== 'cancelled' && b.status !== 'completed');
     
     // შემოწმება - არის თუ არა გადაფარვა თარიღებში
     const hasOverlap = activeBookings.some(existingBooking => {
@@ -292,4 +294,112 @@ export const listenToRoomBookings = (roomId: string, callback: (bookings: Bookin
   
   // დავაბრუნოთ ფუნქცია, რომელიც გამორთავს მოსმენას
   return () => off(bookingsQuery);
+};
+
+// ფუნქცია email-ის ენკოდირებისთვის Realtime Database-ში გამოსაყენებლად
+export const encodeEmail = (email: string): string => {
+  return email.replace(/\./g, ',');
+};
+
+// ფუნქცია email-ის დეკოდირებისთვის
+export const decodeEmail = (encodedEmail: string): string => {
+  return encodedEmail.replace(/,/g, '.');
+};
+
+// Firestore-დან მომხმარებლების სინქრონიზაცია Realtime Database-ში
+export const syncUsersToRealtimeDatabase = async () => {
+  try {
+    // წამოვიღოთ ყველა მომხმარებელი Firestore-დან
+    const usersCollection = collection(db, "users");
+    const usersSnapshot = await getDocs(usersCollection);
+    
+    // შევქმნათ მომხმარებლების ობიექტი Realtime Database-სთვის
+    const usersForRealtime: { [key: string]: any } = {};
+    
+    usersSnapshot.forEach((doc) => {
+      const userData = doc.data();
+      // მომხმარებელი შეიძლება შენახული იყოს uid-ით ან email-ით
+      const userKey = doc.id;
+      
+      // თარიღების კონვერტაცია
+      const createdAt = userData.createdAt?.toDate?.() || new Date();
+      const lastLogin = userData.lastLogin?.toDate?.() || new Date();
+      
+      // შევამოწმოთ თუ key არის email, დავენკოდოთ
+      const isEmail = userKey.includes('@');
+      const realtimeKey = isEmail ? encodeEmail(userKey) : userKey;
+      
+      usersForRealtime[realtimeKey] = {
+        ...userData,
+        createdAt: createdAt.toISOString(),
+        lastLogin: lastLogin.toISOString(),
+        syncedAt: new Date().toISOString(),
+      };
+    });
+    
+    // შევინახოთ მომხმარებლები Realtime Database-ში
+    await set(ref(rtdb, 'users'), usersForRealtime);
+    
+    console.log("Users successfully synced to Realtime Database");
+    return true;
+  } catch (error) {
+    console.error("Error syncing users to realtime database:", error);
+    throw error;
+  }
+};
+
+// Firestore-დან ადმინების სინქრონიზაცია Realtime Database-ში
+export const syncAdminsToRealtimeDatabase = async () => {
+  try {
+    // წამოვიღოთ ყველა ადმინი Firestore-დან
+    const adminsCollection = collection(db, "admins");
+    const adminsSnapshot = await getDocs(adminsCollection);
+    
+    // შევქმნათ ადმინების ობიექტი Realtime Database-სთვის
+    const adminsForRealtime: { [key: string]: any } = {};
+    
+    adminsSnapshot.forEach((doc) => {
+      const adminData = doc.data();
+      // ადმინები შენახულია email-ით
+      const adminKey = doc.id;
+      
+      // მხოლოდ აქტიური ადმინების სინქრონიზაცია
+      if (adminData.isAdmin === true) {
+        // თარიღების კონვერტაცია
+        const createdAt = adminData.createdAt?.toDate?.() || new Date();
+        
+        // დავენკოდოთ email
+        const encodedEmail = encodeEmail(adminKey);
+        
+        adminsForRealtime[encodedEmail] = {
+          ...adminData,
+          createdAt: createdAt.toISOString(),
+          syncedAt: new Date().toISOString(),
+        };
+      }
+    });
+    
+    // შევინახოთ ადმინები Realtime Database-ში
+    await set(ref(rtdb, 'admins'), adminsForRealtime);
+    
+    console.log("Admins successfully synced to Realtime Database");
+    return true;
+  } catch (error) {
+    console.error("Error syncing admins to realtime database:", error);
+    throw error;
+  }
+};
+
+// Firestore-დან მომხმარებლებისა და ადმინების სინქრონიზაცია Realtime Database-ში
+export const syncAllUsersAndAdminsToRealtimeDatabase = async () => {
+  try {
+    await syncUsersToRealtimeDatabase();
+    await syncAdminsToRealtimeDatabase();
+    
+    console.log("All users and admins successfully synced to Realtime Database");
+    return true;
+  } catch (error) {
+    console.error("Error syncing users and admins to realtime database:", error);
+    throw error;
+  }
 }; 

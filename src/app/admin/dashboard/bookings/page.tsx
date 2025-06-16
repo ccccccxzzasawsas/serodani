@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase"
 import { 
   listenToBookings, 
   updateBookingInRealtime, 
-  deleteBookingFromRealtime 
+  deleteBookingFromRealtime
 } from "@/lib/realtimeDb"
 import type { Booking, Room } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
