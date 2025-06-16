@@ -40,7 +40,7 @@ export default function ContactPage() {
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
                 WINE
               </a>
-              <a href="/#contact" className="text-sm text-orange-400">
+              <a href="/contact" className="text-sm text-orange-400">
                 CONTACT
               </a>
             </div>

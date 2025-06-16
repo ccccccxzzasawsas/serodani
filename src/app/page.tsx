@@ -323,7 +323,7 @@ export default function KviriaHotel() {
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
                 WINE
               </a>
-              <a href="/#contact" className="text-sm hover:text-orange-400 transition-colors">
+              <a href="/contact" className="text-sm hover:text-orange-400 transition-colors">
                 CONTACT
               </a>
             </div>
@@ -384,7 +384,7 @@ export default function KviriaHotel() {
         <div className="absolute inset-0">
           <Image 
             src={heroImage} 
-            alt="Kviria Boutique Hotel" 
+            alt="Hotel in Kakheti - Serodani Boutique Wooden Cottages" 
             fill 
             className="object-cover opacity-80"
             loading="eager"
@@ -396,8 +396,9 @@ export default function KviriaHotel() {
         </div>
         <div className="relative z-10 flex flex-col justify-center items-center h-full">
           <div className="text-center">
-            <div className="text-5xl font-bold mb-4">SERODANI</div>
-            <div className="text-3xl tracking-widest font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Hotel with pool</div>
+            <div className="text-5xl font-bold mb-4">Hotel Serodani
+            </div>
+            <div className="text-3xl tracking-widest font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Wooden Cottages in the heart of Kaketi, Georgia</div>
           </div>
         </div>
         
@@ -408,7 +409,7 @@ export default function KviriaHotel() {
 
       {/* Tagline Section */}
       <section className="py-16 bg-[#242323] text-center">
-        <h1 className="text-5xl font-bold tracking-wide">A PLACE LIKE NO OTHER</h1>
+        <h1 className="text-5xl font-bold tracking-wide">Hidden Paradise in Telavi</h1>
      
         {/* ჩატვირთვის ანიმაცია ტექსტის ქვემოთ */}
         {loading && (
@@ -439,7 +440,7 @@ export default function KviriaHotel() {
                       >
                         <Image
                           src={src}
-                          alt={`Boutique hotel slider ${i + 1}`}
+                          alt={`Boutique hotel in Kakheti - Wooden cottages in Georgia`}
                           fill
                           sizes="350px"
                           className="object-cover"
@@ -460,7 +461,7 @@ export default function KviriaHotel() {
                       >
                         <Image
                           src={src}
-                          alt={`Boutique hotel slider ${i + 1}`}
+                          alt={`Best hotels in Kakheti - Serodani wooden cottages`}
                           fill
                           sizes="350px"
                           className="object-cover"
@@ -505,16 +506,21 @@ export default function KviriaHotel() {
           <h2 className="text-3xl font-bold mb-8">OUR STORY</h2>
           <div className="max-w-4xl mx-auto space-y-6 text-gray-300 leading-relaxed mb-12">
             <p>
-              BOUTIQUE HOTEL KVIRIA OFFERS YOU THE HIGHEST LEVEL OF COMFORT AND HOSPITALITY. THE HOTEL IS LOCATED IN THE
-              HEART OF SIGHNAGHI AND OFFERS BREATHTAKING VIEWS OF THE ALAZANI VALLEY.
+              Located in the heart of Georgia's famous wine region, Kakheti, Hotel Serodani is a peaceful hideaway in Village Shalauri, surrounded by nature. With stunning views of the Alazani Valley and Caucasus Mountains, our eco-friendly wooden cottages offer comfort, calm, and authentic Georgian charm.
             </p>
             <p>
-              THE HOTEL HAS 8 COTTAGES OF DIFFERENT CATEGORIES, EACH COTTAGE IS EQUIPPED WITH ALL THE NECESSARY AMENITIES FOR
-              YOUR STAY
+              Cosy nature, Fresh air, Outdoor pools, Georgian Restaurant, our handcrafted wine and warm hospitality—Serodani is a perfect place for families, couples, and friends seeking true relaxation.
             </p>
             <p>
-              THE HOTEL ALSO HAS A RESTAURANT WHERE YOU CAN TASTE TRADITIONAL GEORGIAN CUISINE AND ENJOY THE BEST WINES
-              OF THE REGION. THE HOTEL ALSO HAS A WINE CELLAR WHERE YOU CAN TASTE AND BUY WINES.
+              <strong>Cottages</strong><br />
+              We offer 6 uniquely designed wooden cottages, Each one designed for comfort and privacy, ideal for romantic getaways, family trips, or a peaceful weekend with friends. Each cottage belongs to a different category and is fully equipped with all the necessary modern amenities to ensure your comfort and relaxation. Surrounded by gardens, mountain views, and fresh air—you'll feel at home the moment you arrive.
+            </p>
+            <p>
+              <strong>Food & Wine</strong><br />
+              Our on-site restaurant serves traditional Georgian cuisine made with fresh, local ingredients. We also produce a variety of Georgian wines, aged in our own cellar. Guests are welcome to join wine tastings and learn the stories behind each bottle. With two bars—indoor and outdoor—you'll always find a perfect spot.
+            </p>
+            <p>
+              Hotel Serodani is only 2 kms away from Telavi. Tbilisi Airport is 62 km away. (1.5 hour). There is a bus stop next to the hotel.
             </p>
           </div>
 
@@ -531,7 +537,7 @@ export default function KviriaHotel() {
                 >
                   <Image
                     src={storyImages[0]}
-                    alt="Our story"
+                    alt="Nature hotel in Georgia - Georgian countryside hotel"
                     fill
                     className="object-contain"
                     loading="lazy"
@@ -548,7 +554,7 @@ export default function KviriaHotel() {
                 >
                   <Image
                     src={placeholderStoryImages[0]}
-                    alt="Our story"
+                    alt="Nature hotel in Georgia - Georgian countryside hotel"
                     fill
                     className="object-contain"
                     loading="lazy"
@@ -561,13 +567,20 @@ export default function KviriaHotel() {
 
           <div className="max-w-4xl mx-auto space-y-6 text-gray-300 leading-relaxed">
             <p>
-              The hotel offers a new concept of elegance along with comfort to meet the expectations of various types of
-              guests.
+              <strong>Outdoor swimming pools</strong><br />
+              Swim in our swimming pools with stunning views of the Alazani Valley and the Caucasus Mountains.
             </p>
             <p>
-              The old Georgian brick used on the building's exterior combined with a soft color pallet used throughout
-              the hotel was thoughtfully curated. there is carefully selected music, smiling staff, and unique views
-              which certainly puts everyone in a positive mood.
+              <strong>Culinary Masterclasses</strong><br />
+              We offer a truly authentic experience through Georgian cooking masterclasses. Make Your Own Khinkali – Learn to prepare and shape Georgia's beloved dumplings by hand, guided by local cooks.
+            </p>
+            <p>
+              <strong>Churchkhela Workshops</strong><br />
+              Discover how to make this sweet, traditional Georgian snack from natural grape juice and nuts.
+            </p>
+            <p>
+              <strong>Georgian Wine & Tasting Experience</strong><br />
+              We proudly produce our own Georgian wine using traditional methods passed down through generations. Grown and made right here in Kakheti, our wine cellar is an authentic space where guests can: Taste a variety of our house wines, Learn about the Qvevri method of Georgian winemaking, Buy bottles to take home as a gift or memory.
             </p>
           </div>
         </div>
@@ -588,7 +601,7 @@ export default function KviriaHotel() {
                       <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
                         <Image
                           src={src}
-                          alt={`Gallery image ${i + 1}`}
+                          alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
                           fill
                           className="object-cover"
                           sizes="(max-width: 768px) 100vw, 400px"
@@ -612,7 +625,7 @@ export default function KviriaHotel() {
                         <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
-                            alt={`Gallery image ${i + 4}`}
+                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
                             fill
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, 400px"
@@ -637,7 +650,7 @@ export default function KviriaHotel() {
                         <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
-                            alt={`Gallery image ${i + 7}`}
+                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
                             fill
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, 400px"
@@ -662,7 +675,7 @@ export default function KviriaHotel() {
                         <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
-                            alt={`Gallery image ${i + 10}`}
+                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
                             fill
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, 400px"
@@ -687,7 +700,7 @@ export default function KviriaHotel() {
                         <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
-                            alt={`Gallery image ${i + 13}`}
+                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
                             fill
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, 400px"
@@ -712,7 +725,7 @@ export default function KviriaHotel() {
                         <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
-                            alt={`Gallery image ${i + 16}`}
+                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
                             fill
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, 400px"
@@ -737,7 +750,7 @@ export default function KviriaHotel() {
                         <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
-                            alt={`Gallery image ${i + 19}`}
+                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
                             fill
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, 400px"
@@ -762,7 +775,7 @@ export default function KviriaHotel() {
                         <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
-                            alt={`Gallery image ${i + 23}`}
+                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
                             fill
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, 400px"
@@ -816,54 +829,13 @@ export default function KviriaHotel() {
         </div>
       </section>
 
-      {/* See & Do Section */}
-      <section className="py-20 bg-[#242323]">
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-center mb-16">SEE & DO</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="text-center">
-              <h3 className="font-semibold mb-2">Wine Degustation</h3>
-              <p className="text-sm text-gray-300">Enjoy wine tastings offered at the wine bar.</p>
-            </div>
-            <div className="text-center">
-              <h3 className="font-semibold mb-2">Festive Dinner</h3>
-              <p className="text-sm text-gray-300">
-                Celebrate your special day with the beloved ones at Kviria Restaurant
-              </p>
-            </div>
-            <div className="text-center">
-              <h3 className="font-semibold mb-2">Team Building</h3>
-              <p className="text-sm text-gray-300">
-                The hotel accommodates up to 36 guests and is comfortable for small work groups.
-              </p>
-            </div>
-            <div className="text-center">
-              <h3 className="font-semibold mb-2">Scooter Rental</h3>
-              <p className="text-sm text-gray-300">
-                We offer electric scooters for rental, as a the perfect transportation to the city center.
-              </p>
-            </div>
-            <div className="text-center">
-              <h3 className="font-semibold mb-2">Romantic Dinner</h3>
-              <p className="text-sm text-gray-300">
-                Plan romantic Dinner with your person at Kviria Terrace and enjoy Telavi City View
-              </p>
-            </div>
-            <div className="text-center">
-              <h3 className="font-semibold mb-2">Private Spa</h3>
-              <p className="text-sm text-gray-300">Book and visit our steam bath, sauna and Jacuzzi.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Guest Review Photo */}
       <section className="py-20 bg-[#242323]">
         <div className="container mx-auto px-4">
           <div className="relative w-full mx-auto h-[630px] max-w-[980px]">
             <Image
               src={guestReviewImage || placeholderGuestReviewImage}
-              alt="Guest review"
+              alt="Wine hotel Georgia - Guest reviews of Hotel Serodani in Kakheti"
               fill
               className="object-cover"
               loading="lazy"

@@ -152,7 +152,7 @@ export default function GalleryPage() {
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
                 WINE
               </a>
-              <a href="/#contact" className="text-sm hover:text-orange-400 transition-colors">
+              <a href="/contact" className="text-sm hover:text-orange-400 transition-colors">
                 CONTACT
               </a>
             </div>
@@ -203,7 +203,7 @@ export default function GalleryPage() {
         {heroImage ? (
           <Image
             src={heroImage}
-            alt="Gallery"
+            alt="Gallery - Hotel Serodani in Kakheti, Georgia"
             fill
             priority
             className="object-cover"
@@ -242,7 +242,7 @@ export default function GalleryPage() {
                     >
                       <img
                         src={image}
-                        alt={`Gallery image ${index + 1}`}
+                        alt={`Wooden cottages in Georgia - Hotel Serodani gallery image`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           // ფოტო შეცდომის შემთხვევაში მთლიანად წავშალოთ კონტეინერიდან
@@ -282,7 +282,7 @@ export default function GalleryPage() {
             <X className="h-6 w-6" />
           </button>
           <div className="max-w-[90vw] max-h-[90vh]">
-            <img src={selectedImage} alt="Selected" className="max-w-full max-h-[90vh] object-contain" />
+            <img src={selectedImage} alt="Hotel in Kakheti - Serodani gallery view" className="max-w-full max-h-[90vh] object-contain" />
           </div>
         </div>
       )}

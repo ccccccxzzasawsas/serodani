@@ -344,7 +344,7 @@ export default function FineDiningPage() {
               <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">
                 WINE
               </a>
-              <a href="/#contact" className="text-sm hover:text-orange-400 transition-colors">
+              <a href="/contact" className="text-sm hover:text-orange-400 transition-colors">
                 CONTACT
               </a>
             </div>
@@ -395,7 +395,7 @@ export default function FineDiningPage() {
           {heroImage ? (
             <Image 
               src={heroImage} 
-              alt="Fine Dining Hero"
+              alt="Restaurant – Traditional Georgian Cuisine at Hotel Serodani"
               fill
               className="object-cover"
               priority
@@ -433,7 +433,7 @@ export default function FineDiningPage() {
                         >
                           <Image
                             src={src}
-                            alt={`Fine dining ${i + 1}`}
+                            alt={`Georgian cuisine Kakheti - Traditional food at Hotel Serodani Restaurant`}
                             fill
                             sizes="350px"
                             className="object-cover"
@@ -477,8 +477,20 @@ export default function FineDiningPage() {
         </section>
       )}
 
+      {/* Restaurant Description */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-3xl font-bold mb-8">RESTAURANT</h1>
+            <p className="text-gray-700 leading-relaxed">
+              At Hotel Serodani, our restaurant is much more than a place to eat — it's where the rich flavors and vibrant traditions of Georgian cuisine come alive. Guided by a local chef, every dish is thoughtfully prepared using fresh, locally sourced ingredients to bring you an authentic taste of Kakheti's culinary heritage. Our restaurant has two floors and can accommodate up to 100 guests, making it ideal for romantic dinners, family gatherings, or festive celebrations. Step outside onto one of our two terraces, each offering panoramic views of Alazani Valley, and the majestic Caucasus Mountains.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Menu Section */}
-      <section className="py-16 bg-gray-100">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-8">Check our Menu</h2>
 
@@ -500,7 +512,7 @@ export default function FineDiningPage() {
                       <div className="relative h-[75vh] w-full max-w-4xl cursor-pointer">
                         <Image
                           src={image}
-                          alt={`Restaurant Menu ${index + 1}`}
+                          alt={`Traditional Georgian food - Restaurant menu at Hotel Serodani in Kakheti`}
                           fill
                           className="object-contain"
                           loading="lazy"
@@ -560,7 +572,7 @@ export default function FineDiningPage() {
               >
                 <Image
                   src={menuImage}
-                  alt="Restaurant Menu"
+                  alt="Restaurant in Telavi - Georgian cuisine menu at Hotel Serodani"
                   width={1000}
                   height={1400}
                   className="object-contain mx-auto"

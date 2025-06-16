@@ -1,5 +1,5 @@
 module.exports = {
-  siteUrl: 'https://შენი-საიტი.ge',
+  siteUrl: 'https://hotelserodani.com',
   generateRobotsTxt: true,
   robotsTxtOptions: {
     policies: [
@@ -7,7 +7,10 @@ module.exports = {
         userAgent: '*',
         allow: '/'
       }
-    ]
+    ],
+    additionalSitemaps: [
+      'https://hotelserodani.com/sitemap.xml',
+    ],
   },
   exclude: ['/admin/*'],
   changefreq: 'weekly',

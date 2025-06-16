@@ -34,6 +34,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Loader2 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 
 export default function AdminRoomsPage() {
   const [activeTab, setActiveTab] = useState("manage")
@@ -69,7 +70,12 @@ export default function AdminRoomsPage() {
   const [bedPricesDialogOpen, setBedPricesDialogOpen] = useState(false)
   const [bedPrices, setBedPrices] = useState<{ beds: number; price: number }[]>([])
   const [updatingBedPrices, setUpdatingBedPrices] = useState(false)
-
+  
+  // აღწერის რედაქტირების state
+  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false)
+  const [newDescription, setNewDescription] = useState("")
+  const [updatingDescription, setUpdatingDescription] = useState(false)
+  
   // ფუნქცია Firebase Storage URL-ის გასაწმენდად და დასაკონვერტირებლად
   const getProperImageUrl = async (url: string): Promise<string | null> => {
     if (!url) return null;
@@ -868,6 +874,52 @@ export default function AdminRoomsPage() {
     }
   };
 
+  // ოთახის აღწერის განახლების ფუნქცია
+  const updateRoomDescription = async (roomId: string, description: string) => {
+    try {
+      setUpdatingDescription(true)
+      const roomRef = doc(db, "rooms", roomId)
+      await updateDoc(roomRef, { description })
+      
+      // ოთახების სიის განახლება
+      setRooms(prevRooms => 
+        prevRooms.map(room => 
+          room.id === roomId ? { ...room, description } : room
+        )
+      )
+      
+      toast({
+        title: "აღწერა განახლებულია",
+        variant: "default",
+      })
+    } catch (error) {
+      console.error("Error updating room description:", error)
+      toast({
+        title: "შეცდომა",
+        description: "აღწერის განახლება ვერ მოხერხდა",
+        variant: "destructive",
+      })
+    } finally {
+      setUpdatingDescription(false)
+      setDescriptionDialogOpen(false)
+    }
+  }
+  
+  // აღწერის რედაქტირების დიალოგის გახსნა
+  const openDescriptionDialog = (room: Room) => {
+    setRoomToEdit(room)
+    setNewDescription(room.description || "")
+    setDescriptionDialogOpen(true)
+  }
+  
+  // აღწერის განახლების ფორმის დასაბმითება
+  const handleDescriptionSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (roomToEdit) {
+      updateRoomDescription(roomToEdit.id, newDescription)
+    }
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">ოთახების მართვა</h1>
@@ -947,6 +999,16 @@ export default function AdminRoomsPage() {
                             <Pencil className="h-4 w-4 mr-2" />
                             ფასის შეცვლა
                             </Button>
+                          
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => openDescriptionDialog(room)}
+                              className="bg-white border-gray-300 hover:bg-gray-100"
+                            >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            აღწერის შეცვლა
+                          </Button>
                           
                             <Button 
                               variant="outline" 
@@ -1489,6 +1551,65 @@ export default function AdminRoomsPage() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ოთახის აღწერის რედაქტირების დიალოგი */}
+      <Dialog open={descriptionDialogOpen} onOpenChange={setDescriptionDialogOpen}>
+        <DialogContent className="bg-white border-2 shadow-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl">ოთახის აღწერის რედაქტირება</DialogTitle>
+            <DialogDescription className="text-gray-700">
+              შეცვალეთ ოთახის აღწერა
+            </DialogDescription>
+          </DialogHeader>
+          
+          {roomToEdit && (
+            <form onSubmit={handleDescriptionSubmit} className="py-4 space-y-4">
+              <div>
+                <p className="font-medium">{roomToEdit.name}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="room-description">აღწერა</Label>
+                <Textarea
+                  id="room-description"
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="ოთახის დეტალური აღწერა..."
+                  rows={6}
+                  className="w-full"
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button
+                  type="submit"
+                  disabled={updatingDescription}
+                  className="mt-4"
+                >
+                  {updatingDescription ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      მიმდინარეობს...
+                    </>
+                  ) : (
+                    "შენახვა"
+                  )}
+                </Button>
+                <DialogClose asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={updatingDescription}
+                    className="mt-4"
+                  >
+                    გაუქმება
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

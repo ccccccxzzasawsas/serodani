@@ -8,9 +8,17 @@ import { Toaster } from "@/components/ui/toaster"
 import { FacebookIcon, Instagram } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "Serodani Hotel",
-  description: "Hotel with pool in Sighnaghi, Georgia",
-  generator: "v0.dev",
+  title: "Hotel in Kakheti – Serodani | Cottage Stay in Telavi",
+  description: "Book your nature stay at a boutique wine hotel in Kakheti. Wooden cottages, fresh air, and Georgian hospitality in the heart of Telavi.",
+  openGraph: {
+    title: "Cottage Stay in Kakheti | Hotel Serodani",
+    description: "Relax in wooden cottages, enjoy Georgian wine and discover the best boutique hotel experience in Kakheti.",
+  },
+  twitter: {
+    title: "Cottage Stay in Kakheti | Hotel Serodani",
+    description: "Relax in wooden cottages, enjoy Georgian wine and discover the best boutique hotel experience in Kakheti.",
+  },
+  keywords: "Hotel in Kakheti, Best Hotels in Kakheti, Kakheti boutique hotel, Nature hotel in Georgia, Cottage stay Kakheti, Wooden cottages in Georgia, Cottage in Kakheti, Georgian countryside hotel, Wine hotel Georgia, Hotels in Telavi, Where to stay in Kakheti, Relaxing weekend getaway from Tbilisi",
 }
 
 export default function RootLayout({
@@ -30,6 +38,7 @@ export default function RootLayout({
           rel="dns-prefetch" 
           href="https://firebasestorage.googleapis.com"
         />
+        <meta name="keywords" content="Hotel in Kakheti, Best Hotels in Kakheti, Kakheti boutique hotel, Nature hotel in Georgia, Cottage stay Kakheti, Wooden cottages in Georgia, Cottage in Kakheti, Georgian countryside hotel, Wine hotel Georgia, Hotels in Telavi, Where to stay in Kakheti, Relaxing weekend getaway from Tbilisi" />
       </head>
       <body>
         <AuthProvider>

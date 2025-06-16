@@ -97,7 +97,7 @@ export default function WinesPage() {
               <a href="/wines" className="text-sm text-orange-400">
                 WINE
               </a>
-              <a href="/#contact" className="text-sm hover:text-orange-400 transition-colors">
+              <a href="/contact" className="text-sm hover:text-orange-400 transition-colors">
                 CONTACT
               </a>
             </div>
@@ -148,7 +148,7 @@ export default function WinesPage() {
           <div className="absolute inset-0">
             <Image 
               src={heroImage}
-              alt="Wine Cellar Hero"
+              alt="Wine hotel Georgia - Traditional Georgian wine cellar in Kakheti"
               fill
               className="object-cover object-center"
               priority
@@ -166,7 +166,8 @@ export default function WinesPage() {
       {/* Great Wines Section */}
       <section className="py-16 bg-white relative">
         <div className="text-center mb-12">
-          <h2 className="text-5xl font-light italic" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Great wines tell a story</h2>
+          <h2 className="text-5xl font-light italic" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Our Wine – Tradition and Taste from the Heart of Kakheti
+          </h2>
         </div>
         
         <div className="container mx-auto px-4">
@@ -191,7 +192,7 @@ export default function WinesPage() {
                           <div key={i} className="relative h-[320px]">
                             <Image
                               src={src}
-                              alt={`Wine image ${i + 1}`}
+                              alt={`Georgian wine from Kakheti - Wine hotel experience at Serodani`}
                               fill
                               className="object-cover"
                               loading={i === 0 ? "eager" : "lazy"}
@@ -209,8 +210,10 @@ export default function WinesPage() {
                     {/* "Matisi" ინფორმაცია */}
                     <div className="md:w-1/4 flex items-center">
                       <div>
-                        <p className="text-gray-700">
-                          "Matisi" offers variety of naturally made unique wines produced in the village located only 30 minutes away from the hotel (close to Alaverdi monastery).
+                        <p className="text-gray-700 text-lg">
+                        At Hotel Serodani, wine is a living tradition. We take great pride in producing our own homemade wines, crafted with passion and respect for centuries-old Georgian winemaking methods.
+Our collection includes some of Georgia's most celebrated varieties:
+
                         </p>
                       </div>
                     </div>
@@ -219,11 +222,25 @@ export default function WinesPage() {
                   {/* მწვანე ნაწილი */}
                   <div className="bg-[#A9B4A3] py-12 px-8 mb-16">
                     <div className="container mx-auto text-center">
-                      <p className="text-xl mb-6">
-                        Almost everywhere you go, you'll be invited to drink a glass of traditional Qvevri wine in Georgia.
+                      <p className="text-base mb-4">
+                      Saperavi – Georgia's iconic deep red wine, known for its rich, bold taste and full body
                       </p>
-                      <p className="text-xl mb-6">
-                        However, when you visit us, you won't have to go far for this experience since we make a variety of wines under name "Matisi" and offer it to our guests.
+                      <p className="text-base mb-4">
+                      Kisi – a distinctive and aromatic white wine, rich in character
+                      </p>
+                      <p className="text-base mb-4">
+                      Tvishi – a delicate white wine with fresh floral notes
+                      </p>
+                      <p className="text-base mb-4">
+                      Kindzmarauli – a naturally semi-sweet red wine, famous for its vibrant fruit flavors
+                      </p>
+                      <p className="text-base mb-4">
+                      Rosé – a fresh, elegant wine perfect for any occasion
+                      </p>
+                      <p className="text-base mb-4">
+                      Each bottle is made following traditional techniques.
+                      </p>
+                      <p className="text-base mb-4">
                       </p>
                     </div>
                   </div>
@@ -233,14 +250,11 @@ export default function WinesPage() {
                     {/* ჭაჭის ინფორმაცია */}
                     <div className="md:w-1/3 flex flex-col justify-center">
                       <div className="space-y-8">
-                        <p className="text-gray-700">
-                          Our bar offers a wide selection of Chacha with natural ingredients and made by old Kakhetian traditional method.
+                        <p className="text-gray-700 text-lg">
+                          We warmly invite our guests to experience the magic of Georgian winemaking with a guided wine tour through our wine cellar. Here, you'll learn about the ancient qvevri method, the history behind each varietal, and the craftsmanship involved in producing our wines.
                         </p>
-                        <p className="text-gray-700">
-                          Try the variety: Mint, Cinnamon, Tarragon and Traditional...
-                        </p>
-                        <p className="text-gray-700">
-                          Name the favorite one!
+                        <p className="text-gray-700 text-lg">
+                          Guests also have the opportunity to purchase bottles directly from our cellar, allowing you to take a piece of Kakheti's heritage home with you.
                         </p>
                       </div>
                     </div>
@@ -252,7 +266,7 @@ export default function WinesPage() {
                           <div key={i} className="relative h-[320px]">
                             <Image
                               src={src}
-                              alt={`Chacha image ${i + 1}`}
+                              alt={`Traditional wine tasting in Kakheti - Georgian winemaking at Hotel Serodani`}
                               fill
                               className="object-cover"
                               loading="lazy"
