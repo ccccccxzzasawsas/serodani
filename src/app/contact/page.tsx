@@ -108,7 +108,7 @@ export default function ContactPage() {
                     <span>info@serodanihotel.ge</span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <a href="https://maps.app.goo.gl/R8VqUVqmo4JYePJ3A" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline flex items-center">
+                    <a href="https://www.google.com/maps/place/%E1%83%A1%E1%83%94%E1%83%A0%E1%83%9D%E1%83%93%E1%83%90%E1%83%9C%E1%83%98/@41.9062177,45.4928842,17z/data=!4m9!3m8!1s0x404433f8b9e2e367:0x7dd2cf495cd7b4f!5m2!4m1!1i2!8m2!3d41.9062137!4d45.4954591!16s%2Fg%2F11v4514mjr?entry=ttu&g_ep=EgoyMDI1MDYxMS4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline flex items-center">
                       <span>View on Google Maps</span>
                     </a>
                   </div>
@@ -128,7 +128,7 @@ export default function ContactPage() {
               </div>
               <div className="relative h-[550px] rounded-lg overflow-hidden">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2976.0362900892893!2d45.444419511397876!3d41.857483605717!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40447f5eba48990f%3A0x2b74c088d3c45d0d!2sSerodani!5e0!3m2!1sen!2sge!4v1718290295321!5m2!1sen!2sge"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2975.1598831148797!2d45.49283377649865!3d41.90621772158098!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x404433f8b9e2e367%3A0x7dd2cf495cd7b4f!2z4YOh4YOQ4YOg4YOd4YOT4YOQ4YOc4YOY!5e0!3m2!1ska!2sge!4v1720730462774!5m2!1ska!2sge"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
