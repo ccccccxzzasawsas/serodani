@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Search } from "lucide-react"
+import { Search, Menu, X, User } from "lucide-react"
 import { useAuth } from "@/lib/auth"
-import { User } from "lucide-react"
 import Link from "next/link"
 import { collection, getDocs, doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -36,6 +35,7 @@ export default function RoomsPage() {
   const [heroImageUrl, setHeroImageUrl] = useState<string>("/room/hero.jpg")
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const [selectedRoomForImage, setSelectedRoomForImage] = useState<Room | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
   // Booking Modal State
   const [bookingModalOpen, setBookingModalOpen] = useState(false)
@@ -102,33 +102,103 @@ export default function RoomsPage() {
       <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex space-x-8">
+            {/* Mobile menu button */}
+            <button 
+              className="lg:hidden focus:outline-none"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6 text-orange-400" />
+              ) : (
+                <Menu className="w-6 h-6 text-orange-400" />
+              )}
+            </button>
+          
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex lg:space-x-8">
               <a href="/" className="text-sm hover:text-orange-400 transition-colors">HOME</a>
               <a href="/rooms" className="text-sm text-orange-400">COTTAGES</a>
               <a href="/gallery" className="text-sm hover:text-orange-400 transition-colors">GALLERY</a>
               <a href="/fine-dining" className="text-sm hover:text-orange-400 transition-colors">RESTAURANT</a>
-              <a href="/wine" className="text-sm hover:text-orange-400 transition-colors">WINE</a>
+              <a href="/wines" className="text-sm hover:text-orange-400 transition-colors">WINE</a>
               <a href="/contact" className="text-sm hover:text-orange-400 transition-colors">CONTACT</a>
             </div>
+            
             <div className="flex items-center space-x-4">
               {user ? (
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2 text-sm">
                     <User className="w-4 h-4" />
-                    <span>{user.displayName || user.email}</span>
+                    <span className="hidden sm:inline">{user.displayName || user.email}</span>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-orange-400 hover:text-orange-300">Sign Out</Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleSignOut} 
+                    className="text-orange-400 hover:text-orange-300"
+                  >
+                    <span className="hidden sm:inline">Sign Out</span>
+                    <X className="sm:hidden w-4 h-4" />
+                  </Button>
                 </div>
               ) : (
                 <Link href="/admin/login">
                   <Button variant="ghost" size="sm" className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10">
                     <User className="mr-2 h-4 w-4" />
-                    Login
+                    <span className="hidden sm:inline">Login</span>
                   </Button>
                 </Link>
               )}
             </div>
           </div>
+
+          {/* Mobile Navigation */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden pt-4 pb-2 space-y-2 border-t border-gray-700 mt-4">
+              <a 
+                href="/" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                HOME
+              </a>
+              <a 
+                href="/rooms" 
+                className="block py-2 text-sm text-orange-400"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                COTTAGES
+              </a>
+              <a 
+                href="/gallery" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                GALLERY
+              </a>
+              <a 
+                href="/fine-dining" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                RESTAURANT
+              </a>
+              <a 
+                href="/wines" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                WINE
+              </a>
+              <a 
+                href="/contact" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                CONTACT
+              </a>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -199,9 +269,7 @@ export default function RoomsPage() {
                           <h2 className="text-3xl font-bold">{room.name}</h2>
                           {room.description && <p className="text-gray-600 leading-relaxed">{room.description}</p>}
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                            <div>
-                              <p className="text-gray-500">Sleeps: {room.beds} guests</p>
-                            </div>
+                            
                             <Button onClick={() => openBookingDialog(room)} className="bg-blue-600 hover:bg-blue-700 text-white">Book Now</Button>
                           </div>
                         </div>

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MapPin, Phone, Mail, ChevronLeft, ChevronRight, Star, User } from "lucide-react"
+import { MapPin, Phone, Mail, ChevronLeft, ChevronRight, Star, User, Menu, X } from "lucide-react"
 import { collection, getDocs, doc, getDoc } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth"
@@ -21,6 +21,7 @@ export default function KviriaHotel() {
   const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [guestReviewImage, setGuestReviewImage] = useState("")
   const [loading, setLoading] = useState(true)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, signOut, isAdmin } = useAuth()
   const sliderTrackRef = useRef<HTMLDivElement>(null)
   const animationRef = useRef<number | null>(null)
@@ -302,12 +303,25 @@ export default function KviriaHotel() {
   const placeholderGuestReviewImage = "/placeholder.svg?height=500&width=500&text=Guest+Review"
 
   return (
-    <div className="min-h-screen bg-[#242323] text-white">
+    <div className="relative min-h-screen">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-[#242323]/80 backdrop-blur-sm">
+      <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-sm text-white">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex space-x-8">
+            {/* Mobile menu button */}
+            <button 
+              className="lg:hidden focus:outline-none"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6 text-orange-400" />
+              ) : (
+                <Menu className="w-6 h-6 text-orange-400" />
+              )}
+            </button>
+            
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex lg:space-x-8">
               <a href="/" className="text-sm text-orange-400">
                 HOME
               </a>
@@ -327,6 +341,7 @@ export default function KviriaHotel() {
                 CONTACT
               </a>
             </div>
+            
             <div className="flex items-center space-x-4">
               <Button
                 variant="outline"
@@ -340,26 +355,16 @@ export default function KviriaHotel() {
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2 text-sm">
                     <User className="w-4 h-4" />
-                    <span>{user.displayName || user.email}</span>
+                    <span className="hidden sm:inline">{user.displayName || user.email}</span>
                   </div>
-                  {isAdmin && (
-                    <Link href="/admin/dashboard">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-orange-400 hover:text-orange-300"
-                      >
-                        Admin Panel
-                      </Button>
-                    </Link>
-                  )}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleSignOut}
                     className="text-orange-400 hover:text-orange-300"
                   >
-                    Sign Out
+                    <span className="hidden sm:inline">Sign Out</span>
+                    <X className="sm:hidden w-4 h-4" />
                   </Button>
                 </div>
               ) : (
@@ -370,12 +375,60 @@ export default function KviriaHotel() {
                     className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10"
                   >
                     <User className="mr-2 h-4 w-4" />
-                    Login
+                    <span className="hidden sm:inline">Login</span>
                   </Button>
                 </Link>
               )}
             </div>
           </div>
+          
+          {/* Mobile Navigation */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden pt-4 pb-2 space-y-2 border-t border-gray-700 mt-4">
+              <a 
+                href="/" 
+                className="block py-2 text-sm text-orange-400"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                HOME
+              </a>
+              <a 
+                href="/rooms" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                COTTAGES
+              </a>
+              <a 
+                href="/gallery" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                GALLERY
+              </a>
+              <a 
+                href="/fine-dining" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                RESTAURANT
+              </a>
+              <a 
+                href="/wines" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                WINE
+              </a>
+              <a 
+                href="/contact" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                CONTACT
+              </a>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -396,7 +449,7 @@ export default function KviriaHotel() {
         </div>
         <div className="relative z-10 flex flex-col justify-center items-center h-full">
           <div className="text-center">
-            <div className="text-5xl font-bold mb-4">Hotel Serodani
+            <div className="text-6xl font-bold mb-4">Hotel Serodani
             </div>
             <div className="text-3xl tracking-widest font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Wooden Cottages in the heart of Kaketi, Georgia</div>
           </div>
@@ -409,7 +462,7 @@ export default function KviriaHotel() {
 
       {/* Tagline Section */}
       <section className="py-16 bg-[#242323] text-center">
-        <h1 className="text-5xl font-bold tracking-wide">Hidden Paradise in Telavi</h1>
+        <h1 className="text-4xl font-bold tracking-wide">Hidden Paradise in Telavi</h1>
      
         {/* ჩატვირთვის ანიმაცია ტექსტის ქვემოთ */}
         {loading && (
@@ -566,6 +619,7 @@ export default function KviriaHotel() {
           </div>
 
           <div className="max-w-4xl mx-auto space-y-6 text-gray-300 leading-relaxed">
+            <h2 className="text-3xl font-bold mb-8 text-center">ACTIVITIES</h2>
             <p>
               <strong>Outdoor swimming pools</strong><br />
               Swim in our swimming pools with stunning views of the Alazani Valley and the Caucasus Mountains.
@@ -855,15 +909,31 @@ export default function KviriaHotel() {
               <div className="space-y-4 text-gray-300">
                 <div className="flex items-center space-x-3">
                   <MapPin className="w-5 h-5 text-orange-400" />
-                  <span>Sighnaghi, Kakheti Region, Georgia</span>
+                  <span>Shalauri Village, Telavi, Georgia</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Phone className="w-5 h-5 text-orange-400" />
-                  <span>+995 555 123 456</span>
+                  <span>+995 599 40 32 03</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 text-orange-400" />
-                  <span>info@kviria.ge</span>
+                  <span>info@serodanihotel.ge</span>
+                </div>
+                <div className="flex items-center space-x-3 mt-2">
+                  <a href="https://www.google.com/maps/place/Serodani/@41.9062137,45.4954591,17z/data=!4m9!3m8!1s0x404433f8b9e2e367:0x7dd2cf495cd7b4f!5m2!4m1!1i2!8m2!3d41.9062137!4d45.4954591!16s%2Fg%2F11v4514mjr?entry=ttu" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-orange-400 hover:underline">
+                    View on Google Maps
+                  </a>
+                </div>
+                <div className="flex items-center space-x-3 mt-2">
+                  <a href="https://serodani.ps.me" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-orange-400 hover:underline">
+                    serodani.ps.me
+                  </a>
                 </div>
               </div>
               <h3 className="text-xl font-semibold mb-6 mt-8">Contact</h3>
@@ -873,7 +943,7 @@ export default function KviriaHotel() {
             </div>
             <div className="relative h-80 rounded-lg overflow-hidden">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2973.8234567890123!2d45.4928842!3d41.9062177!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x404433f8b9e2e367%3A0x7dd2cf495cd7b4f!2z4YOh4YOU4YOg4YOd4YOT4YOQ4YOc4YOY!5e0!3m2!1sen!2sge!4v1234567890123!5m2!1sen!2sge"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2975.1598831148797!2d45.49283377649865!3d41.90621772158098!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x404433f8b9e2e367%3A0x7dd2cf495cd7b4f!2z4YOh4YOQ4YOg4YOd4YOT4YOQ4YOc4YOY!5e0!3m2!1ska!2sge!4v1720730462774!5m2!1ska!2sge"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}

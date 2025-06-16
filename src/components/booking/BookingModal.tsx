@@ -29,6 +29,8 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
   const [step, setStep] = useState(1) // დაჯავშნის პროცესის ეტაპი: 1=თარიღები, 2=პირადი ინფო
   const [checkIn, setCheckIn] = useState<Date>()
   const [checkOut, setCheckOut] = useState<Date>()
+  const [checkInOpen, setCheckInOpen] = useState(false)
+  const [checkOutOpen, setCheckOutOpen] = useState(false)
   const [numberOfRooms, setNumberOfRooms] = useState("1")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -651,7 +653,7 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                     <Label htmlFor="check-in" className="mb-1 block">
                       Check-in Date
                     </Label>
-                    <Popover>
+                    <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           id="check-in"
@@ -669,7 +671,12 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                         <Calendar
                           mode="single"
                           selected={checkIn}
-                          onSelect={(date) => date && setCheckIn(date)}
+                          onSelect={(date) => {
+                            if (date) {
+                              setCheckIn(date);
+                              setCheckInOpen(false);
+                            }
+                          }}
                           initialFocus
                           disabled={(date) => date < new Date()}
                         />
@@ -681,7 +688,7 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                     <Label htmlFor="check-out" className="mb-1 block">
                       Check-out Date
                     </Label>
-                    <Popover>
+                    <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           id="check-out"
@@ -699,7 +706,12 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                         <Calendar
                           mode="single"
                           selected={checkOut}
-                          onSelect={(date) => date && setCheckOut(date)}
+                          onSelect={(date) => {
+                            if (date) {
+                              setCheckOut(date);
+                              setCheckOutOpen(false);
+                            }
+                          }}
                           initialFocus
                           disabled={(date) => !checkIn || date <= checkIn}
                         />

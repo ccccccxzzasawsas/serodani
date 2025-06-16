@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { User, MapPin } from "lucide-react"
+import { User, MapPin, Menu, X } from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
 import { getDoc, doc } from "firebase/firestore"
@@ -17,6 +17,7 @@ export default function WinesPage() {
   const [wineImages, setWineImages] = useState<string[]>([])
   const [heroImage, setHeroImage] = useState<string | null>(null) // null-ით დავიწყოთ
   const [loading, setLoading] = useState(true)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -81,7 +82,20 @@ export default function WinesPage() {
       <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-sm text-white">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex space-x-8">
+            {/* Mobile menu button */}
+            <button 
+              className="lg:hidden focus:outline-none"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6 text-orange-400" />
+              ) : (
+                <Menu className="w-6 h-6 text-orange-400" />
+              )}
+            </button>
+            
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex lg:space-x-8">
               <a href="/" className="text-sm hover:text-orange-400 transition-colors">
                 HOME
               </a>
@@ -101,6 +115,7 @@ export default function WinesPage() {
                 CONTACT
               </a>
             </div>
+            
             <div className="flex items-center space-x-4">
               <Button
                 variant="outline"
@@ -114,7 +129,7 @@ export default function WinesPage() {
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2 text-sm">
                     <User className="w-4 h-4" />
-                    <span>{user.displayName || user.email}</span>
+                    <span className="hidden sm:inline">{user.displayName || user.email}</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -122,7 +137,8 @@ export default function WinesPage() {
                     onClick={handleSignOut}
                     className="text-orange-400 hover:text-orange-300"
                   >
-                    Sign Out
+                    <span className="hidden sm:inline">Sign Out</span>
+                    <X className="sm:hidden w-4 h-4" />
                   </Button>
                 </div>
               ) : (
@@ -133,12 +149,60 @@ export default function WinesPage() {
                     className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10"
                   >
                     <User className="mr-2 h-4 w-4" />
-                    Login
+                    <span className="hidden sm:inline">Login</span>
                   </Button>
                 </Link>
               )}
             </div>
           </div>
+          
+          {/* Mobile Navigation */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden pt-4 pb-2 space-y-2 border-t border-gray-700 mt-4">
+              <a 
+                href="/" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                HOME
+              </a>
+              <a 
+                href="/rooms" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                COTTAGES
+              </a>
+              <a 
+                href="/gallery" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                GALLERY
+              </a>
+              <a 
+                href="/fine-dining" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                RESTAURANT
+              </a>
+              <a 
+                href="/wines" 
+                className="block py-2 text-sm text-orange-400"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                WINE
+              </a>
+              <a 
+                href="/contact" 
+                className="block py-2 text-sm hover:text-orange-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                CONTACT
+              </a>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -210,7 +274,7 @@ export default function WinesPage() {
                     {/* "Matisi" ინფორმაცია */}
                     <div className="md:w-1/4 flex items-center">
                       <div>
-                        <p className="text-gray-700 text-lg">
+                        <p className="text-gray-700 text-xl">
                         At Hotel Serodani, wine is a living tradition. We take great pride in producing our own homemade wines, crafted with passion and respect for centuries-old Georgian winemaking methods.
 Our collection includes some of Georgia's most celebrated varieties:
 
@@ -222,25 +286,25 @@ Our collection includes some of Georgia's most celebrated varieties:
                   {/* მწვანე ნაწილი */}
                   <div className="bg-[#A9B4A3] py-12 px-8 mb-16">
                     <div className="container mx-auto text-center">
-                      <p className="text-base mb-4">
-                      Saperavi – Georgia's iconic deep red wine, known for its rich, bold taste and full body
+                      <p className="text-lg mb-4">
+                      <strong>Saperavi</strong> – Georgia's iconic deep red wine, known for its rich, bold taste and full body
                       </p>
-                      <p className="text-base mb-4">
-                      Kisi – a distinctive and aromatic white wine, rich in character
+                      <p className="text-lg mb-4">
+                      <strong>Kisi</strong> – a distinctive and aromatic white wine, rich in character
                       </p>
-                      <p className="text-base mb-4">
-                      Tvishi – a delicate white wine with fresh floral notes
+                      <p className="text-lg mb-4">
+                      <strong>Tvishi</strong> – a delicate white wine with fresh floral notes
                       </p>
-                      <p className="text-base mb-4">
-                      Kindzmarauli – a naturally semi-sweet red wine, famous for its vibrant fruit flavors
+                      <p className="text-lg mb-4">
+                      <strong>Kindzmarauli</strong> – a naturally semi-sweet red wine, famous for its vibrant fruit flavors
                       </p>
-                      <p className="text-base mb-4">
-                      Rosé – a fresh, elegant wine perfect for any occasion
+                      <p className="text-lg mb-4">
+                      <strong>Rosé</strong> – a fresh, elegant wine perfect for any occasion
                       </p>
-                      <p className="text-base mb-4">
-                      Each bottle is made following traditional techniques.
+                      <p className="text-lg mb-4">
+                      <strong>Each bottle is made following traditional techniques.</strong>
                       </p>
-                      <p className="text-base mb-4">
+                      <p className="text-lg mb-4">
                       </p>
                     </div>
                   </div>
@@ -250,10 +314,10 @@ Our collection includes some of Georgia's most celebrated varieties:
                     {/* ჭაჭის ინფორმაცია */}
                     <div className="md:w-1/3 flex flex-col justify-center">
                       <div className="space-y-8">
-                        <p className="text-gray-700 text-lg">
+                        <p className="text-gray-700 text-xl">
                           We warmly invite our guests to experience the magic of Georgian winemaking with a guided wine tour through our wine cellar. Here, you'll learn about the ancient qvevri method, the history behind each varietal, and the craftsmanship involved in producing our wines.
                         </p>
-                        <p className="text-gray-700 text-lg">
+                        <p className="text-gray-700 text-xl">
                           Guests also have the opportunity to purchase bottles directly from our cellar, allowing you to take a piece of Kakheti's heritage home with you.
                         </p>
                       </div>
