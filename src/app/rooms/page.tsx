@@ -276,7 +276,7 @@ export default function RoomsPage() {
                           <h2 className="text-3xl font-bold">{room.name}</h2>
                           {room.description && <p className="text-gray-600 leading-relaxed">{room.description}</p>}
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                            
+                            <div></div>
                             <Button onClick={() => openBookingDialog(room)} className="bg-blue-600 hover:bg-blue-700 text-white">Book Now</Button>
                           </div>
                         </div>
@@ -287,9 +287,7 @@ export default function RoomsPage() {
                           <h2 className="text-3xl font-bold">{room.name}</h2>
                           {room.description && <p className="text-gray-600 leading-relaxed">{room.description}</p>}
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                            <div>
-                              {/* Removed "Sleeps: X guests" text */}
-                            </div>
+                            <div></div>
                             <Button onClick={() => openBookingDialog(room)} className="bg-blue-600 hover:bg-blue-700 text-white">Book Now</Button>
                           </div>
                         </div>

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { CalendarIcon, Users, Bed, ChevronLeft, Loader2, AlertCircle } from "lucide-react"
+import { CalendarIcon, Users, Bed, ChevronLeft, Loader2, AlertCircle, User } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
@@ -507,12 +507,13 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
       <DialogContent className="max-w-[95vw] w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto p-0 bg-gray-100 border border-gray-300">
         <DialogHeader className="p-6 bg-serodani text-white">
           {/* სეროდანის ლოგო ზედა მარჯვენა კუთხეში */}
-          <div className="absolute top-4 right-4 h-12 w-12">
+          <div className="absolute top-2 right-8 h-16 w-16">
             <Image 
-              src="/serodani-logo.svg" 
-              alt="Serodani Cottages" 
-              width={48}
-              height={48}
+              src="/logo.jpg" 
+              alt="Hotel Logo" 
+              width={64}
+              height={64}
+              className="rounded-full"
             />
           </div>
           
@@ -571,12 +572,20 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
               {/* ოთახის დეტალები */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <Bed className="w-4 h-4 text-serodani" />
+                  <div className="flex">
+                    {Array.from({ length: currentRoom.beds || 2 }).map((_, i) => (
+                      <User key={i} className="w-4 h-4 text-serodani" />
+                    ))}
+                  </div>
                   <span className="text-sm">Regular beds: {currentRoom.beds || 2}</span>
                 </div>
                 {currentRoom.extraBeds && currentRoom.extraBeds > 0 && (
                   <div className="flex items-center space-x-2">
-                    <Bed className="w-4 h-4 text-amber-500" />
+                    <div className="flex">
+                      {Array.from({ length: currentRoom.extraBeds }).map((_, i) => (
+                        <User key={i} className="w-4 h-4 text-amber-500" />
+                      ))}
+                    </div>
                     <span className="text-sm">Extra beds available: {currentRoom.extraBeds}</span>
                   </div>
                 )}
@@ -726,7 +735,14 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                     <SelectContent className="bg-gray-50 border border-gray-200 shadow-md">
                       {generateBedsOptions(currentRoom, availableCount).map((option) => (
                         <SelectItem key={option.value} value={option.value.toString()} className="hover:bg-gray-100">
-                          {option.label}
+                          <div className="flex items-center gap-1">
+                            <div className="flex">
+                              {Array.from({ length: option.value }).map((_, i) => (
+                                <User key={i} className="w-3 h-3 text-gray-600" />
+                              ))}
+                            </div>
+                            <span>{option.label}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -736,7 +752,6 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                       Minimum booking of {currentRoom.minBookingBeds} beds required
                     </p>
                   )}
-                  
                 </div>
 
                 {/* ფასი */}
@@ -873,7 +888,13 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                 <div>
                   <h3 className="font-semibold text-serodani">{currentRoom.name}</h3>
                   <div className="text-sm text-gray-600">
-                    <span>{calculateNights()} {calculateNights() === 1 ? "night" : "nights"}, {numberOfRooms} {Number(numberOfRooms) === 1 ? "bed" : "beds"}</span>
+                    <span>{calculateNights()} {calculateNights() === 1 ? "night" : "nights"}, </span>
+                    <div className="inline-flex items-center">
+                      {Array.from({ length: Number(numberOfRooms) }).map((_, i) => (
+                        <User key={i} className="w-3 h-3 text-serodani inline" />
+                      ))}
+                      <span className="ml-1">{Number(numberOfRooms) === 1 ? "bed" : "beds"}</span>
+                    </div>
                   </div>
                   <div className="text-sm font-semibold text-serodani-dark">
                     <span>Total: {calculateTotal()} GEL</span>
