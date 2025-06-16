@@ -673,7 +673,9 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                           onSelect={(date) => {
                             if (date) {
                               setCheckIn(date);
-                              setCheckInOpen(false);
+                              setTimeout(() => {
+                                setCheckInOpen(false);
+                              }, 0);
                             }
                           }}
                           initialFocus
@@ -708,7 +710,9 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                           onSelect={(date) => {
                             if (date) {
                               setCheckOut(date);
-                              setCheckOutOpen(false);
+                              setTimeout(() => {
+                                setCheckOutOpen(false);
+                              }, 0);
                             }
                           }}
                           initialFocus
