@@ -648,75 +648,63 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                 
                 {/* თარიღების არჩევა */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <Label htmlFor="check-in" className="mb-1 block">
-                      Check-in Date
-                    </Label>
+                  {/* Check-in Date */}
+                  <div className="space-y-1">
+                    <Label htmlFor="check-in">Check-in</Label>
                     <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="check-in"
-                          variant={"outline"}
+                      <PopoverTrigger>
+                        <button
+                          type="button"
                           className={cn(
-                            "w-full justify-start text-left font-normal",
+                            "w-full justify-start text-left font-normal border rounded-md p-2 flex items-center bg-transparent hover:bg-accent hover:text-accent-foreground",
                             !checkIn && "text-muted-foreground"
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {checkIn ? format(checkIn, "PPP") : <span>Pick a date</span>}
-                        </Button>
+                        </button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
                           selected={checkIn}
                           onSelect={(date) => {
-                            if (date) {
-                              setCheckIn(date);
-                              setTimeout(() => {
-                              setCheckInOpen(false);
-                              }, 0);
-                            }
+                            setCheckIn(date)
+                            setCheckInOpen(false)
                           }}
-                          initialFocus
-                          disabled={(date) => date < new Date()}
+                          disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
                   
-                  <div>
-                    <Label htmlFor="check-out" className="mb-1 block">
-                      Check-out Date
-                    </Label>
+                  {/* Check-out Date */}
+                  <div className="space-y-1">
+                    <Label htmlFor="check-out">Check-out</Label>
                     <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="check-out"
-                          variant={"outline"}
+                      <PopoverTrigger>
+                        <button
+                          type="button"
                           className={cn(
-                            "w-full justify-start text-left font-normal",
+                            "w-full justify-start text-left font-normal border rounded-md p-2 flex items-center bg-transparent hover:bg-accent hover:text-accent-foreground",
                             !checkOut && "text-muted-foreground"
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {checkOut ? format(checkOut, "PPP") : <span>Pick a date</span>}
-                        </Button>
+                        </button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
                           selected={checkOut}
                           onSelect={(date) => {
-                            if (date) {
-                              setCheckOut(date);
-                              setTimeout(() => {
-                              setCheckOutOpen(false);
-                              }, 0);
-                            }
+                            setCheckOut(date)
+                            setCheckOutOpen(false)
                           }}
-                          initialFocus
-                          disabled={(date) => !checkIn || date <= checkIn}
+                          disabled={(date) => 
+                            date < (checkIn || new Date(new Date().setDate(new Date().getDate())))
+                          }
                         />
                       </PopoverContent>
                     </Popover>
