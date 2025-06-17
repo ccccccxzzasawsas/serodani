@@ -35,22 +35,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# სურათები და დიდი ზომის ფაილები
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.webp
-*.mp4
-*.mov
-*.avi
-*.ico
-*.pdf
-*.zip
-*.rar
-*.7z
-*.tar
-*.gz
 
 # დავტოვოთ საჭირო ფაილები
 !public/galler/**/*.jpg
