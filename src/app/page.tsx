@@ -22,9 +22,11 @@ export default function KviriaHotel() {
   const [guestReviewImage, setGuestReviewImage] = useState("")
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [visibleSections, setVisibleSections] = useState<string[]>([])
   const { user, signOut, isAdmin } = useAuth()
   const sliderTrackRef = useRef<HTMLDivElement>(null)
   const animationRef = useRef<number | null>(null)
+  const galleryRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     // გავასუფთავოთ ბრაუზერის ქეში სურათებიდან
@@ -132,14 +134,18 @@ export default function KviriaHotel() {
           if (galleryResult.items.length > 0) {
             // შევაგროვოთ ყველა ფაილის მეტადატა და URL ერთდროულად
             const galleryImagesWithMetadata = await Promise.all(
-              galleryResult.items.map(async (imageRef) => {
+              // მხოლოდ პირველი 3 სურათის სრულად წამოღება, დანარჩენისთვის მხოლოდ მეტადატა
+              galleryResult.items.map(async (imageRef, index) => {
                 try {
-                  const url = await getDownloadURL(imageRef);
+                  // მხოლოდ პირველი 3 სურათისთვის გამოვითხოვოთ URL-ები წინასწარ
+                  const url = index < 3 ? await getDownloadURL(imageRef) : null;
                   const metadata = await getMetadata(imageRef);
                   return {
+                    ref: imageRef, // შევინახოთ reference მომავალი გამოყენებისთვის
                     url: url,
                     timeCreated: metadata.timeCreated ? new Date(metadata.timeCreated) : new Date(),
-                    name: imageRef.name
+                    name: imageRef.name,
+                    index: index
                   };
                 } catch (error) {
                   console.error(`Error processing gallery image ${imageRef.name}:`, error);
@@ -149,17 +155,42 @@ export default function KviriaHotel() {
             );
             
             // გავფილტროთ null მნიშვნელობები და დავალაგოთ თარიღის მიხედვით (ახლიდან ძველისკენ)
-            const sortedGalleryImages = galleryImagesWithMetadata
+            const sortedGalleryImagesMetadata = galleryImagesWithMetadata
               .filter(item => item !== null)
               .sort((a, b) => {
                 if (!a || !b) return 0;
                 return b.timeCreated.getTime() - a.timeCreated.getTime();
-              })
-              .map(item => item!.url);
+              });
             
-            if (sortedGalleryImages.length > 0) {
-              setGalleryImages(sortedGalleryImages);
-              console.log("Gallery images loaded and sorted from Firebase Storage:", sortedGalleryImages.length);
+            // მხოლოდ პირველი 3 სურათის URL-ები
+            const initialGalleryImages = sortedGalleryImagesMetadata
+              .slice(0, 3)
+              .map(item => item!.url || '/placeholder.svg?height=300&width=400&text=Loading...'); // პლეისჰოლდერი თუ URL ჯერ არ არის წამოღებული
+            
+            if (initialGalleryImages.length > 0) {
+              setGalleryImages(initialGalleryImages);
+              console.log("Initial gallery images loaded:", initialGalleryImages.length);
+              
+              // დანარჩენი სურათების წამოღება ფონურად
+              setTimeout(() => {
+                Promise.all(
+                  sortedGalleryImagesMetadata.slice(3).map(async (item) => {
+                    if (!item) return '/placeholder.svg?height=300&width=400&text=Loading...';
+                    if (item.url) return item.url;
+                    try {
+                      return await getDownloadURL(item.ref);
+                    } catch (error) {
+                      console.error(`Error loading deferred image ${item.name}:`, error);
+                      return '/placeholder.svg?height=300&width=400&text=Loading...';
+                    }
+                  })
+                ).then(deferredUrls => {
+                  // გავაერთიანოთ საწყისი და მოგვიანებით ჩატვირთული URL-ები
+                  const allUrls = [...initialGalleryImages, ...deferredUrls];
+                  setGalleryImages(allUrls);
+                  console.log("All gallery images loaded:", allUrls.length);
+                });
+              }, 2000); // 2 წამის დაყოვნებით დავიწყოთ დანარჩენი სურათების ჩატვირთვა
             } else {
               console.log("No valid gallery images found in Firebase Storage, using fallback local images");
               // ფოლბექი ლოკალური სურათებისთვის
@@ -265,6 +296,15 @@ export default function KviriaHotel() {
       const maxSlides = Math.ceil((galleryImages.length > 0 ? galleryImages.length : placeholderGalleryImages.length) / 3)
       return prev < maxSlides - 1 ? prev + 1 : prev
     })
+    
+    // ახალი სლაიდის ჩატვირთვა, როცა მომხმარებელი გადაფურცლავს
+    const newIndex = currentGalleryIndex + 1;
+    if (newIndex * 3 + 3 <= galleryImages.length) {
+      // უკვე ჩატვირთულია ყველა საჭირო სურათი
+      return;
+    }
+    
+    console.log("Loading more gallery images for slide:", newIndex);
   }
 
   const prevGalleryImage = () => {
@@ -301,6 +341,49 @@ export default function KviriaHotel() {
   ]
 
   const placeholderGuestReviewImage = "/placeholder.svg?height=500&width=500&text=Guest+Review"
+
+  // IntersectionObserver-ის გამოყენება სექციების ხილვადობის დასადგენად
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1
+    };
+    
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setVisibleSections(prev => {
+            if (!prev.includes(entry.target.id)) {
+              console.log(`Section ${entry.target.id} is now visible`);
+              return [...prev, entry.target.id];
+            }
+            return prev;
+          });
+        }
+      });
+    }, observerOptions);
+    
+    // დავაკვირდეთ სექციებს
+    const sections = document.querySelectorAll('section[id]');
+    sections.forEach(section => {
+      sectionObserver.observe(section);
+    });
+    
+    return () => {
+      sections.forEach(section => {
+        sectionObserver.unobserve(section);
+      });
+    };
+  }, []);
+  
+  // გალერიის სურათების ლეივი ჩატვირთვა, როცა გალერიის სექცია ხილვადი გახდება
+  useEffect(() => {
+    if (visibleSections.includes('gallery') && galleryImages.length <= 3) {
+      console.log('Gallery section is visible, loading more images');
+      // აქ შეგვიძლია დავიწყოთ დანარჩენი სურათების ჩატვირთვა
+    }
+  }, [visibleSections, galleryImages.length]);
 
   return (
     <div className="relative min-h-screen">
@@ -448,7 +531,7 @@ export default function KviriaHotel() {
       <section className="relative w-full bg-black aspect-[3/4] md:aspect-video">
         <div className="absolute inset-0">
           <Image 
-            src={heroImage} 
+            src={heroImage && heroImage.trim() ? heroImage : "/home/gallery (15).jpg"} 
             alt="Hotel in Kakheti - Serodani Boutique Wooden Cottages" 
             width={1200} 
             height={800} 
@@ -495,44 +578,54 @@ export default function KviriaHotel() {
                 <>
                   {sliderImages.length > 0 ? (
                     // ყველა სურათი ორჯერ, რომ უსასრულოდ მოძრაობდეს
-                    [...sliderImages, ...sliderImages].map((src, i) => (
-                      <div
-                        key={i}
-                        className="relative flex-shrink-0 h-[280px]"
-                        style={{ width: "350px", marginRight: "10px" }}
-                      >
-                        <Image
-                          src={src}
-                          alt={`Boutique hotel in Kakheti - Wooden cottages in Georgia`}
-                          width={350}
-                          height={280}
-                          className="object-cover"
-                          loading={i < 6 ? "eager" : "lazy"}
-                          priority={i < 3}
-                          unoptimized={i < 3}
-                        />
-                      </div>
-                    ))
+                    [...sliderImages, ...sliderImages].map((src, i) => {
+                      // დავრწმუნდეთ რომ src არ არის ცარიელი სტრინგი
+                      const imageSrc = src && src.trim() ? src : '/placeholder.svg?height=280&width=350&text=Loading...';
+                      
+                      return (
+                        <div
+                          key={i}
+                          className="relative flex-shrink-0 h-[280px]"
+                          style={{ width: "350px", marginRight: "10px" }}
+                        >
+                          <Image
+                            src={imageSrc}
+                            alt={`Boutique hotel in Kakheti - Wooden cottages in Georgia`}
+                            width={350}
+                            height={280}
+                            className="object-cover"
+                            loading={i < 6 ? "eager" : "lazy"}
+                            priority={i < 3}
+                            unoptimized={i < 3}
+                          />
+                        </div>
+                      );
+                    })
                   ) : (
                     // ფოლბექ იმიჯები თუ სერვერიდან არ მოვიდა
-                    ['/slider/1.jpg', '/slider/2.jpg', '/slider/3.jpg', '/slider/4.jpg', '/slider/5.jpg'].map((src, i) => (
-                      <div
-                        key={i}
-                        className="relative flex-shrink-0 h-[280px]"
-                        style={{ width: "350px", marginRight: "10px" }}
-                      >
-                        <Image
-                          src={src}
-                          alt={`Best hotels in Kakheti - Serodani wooden cottages`}
-                          width={350}
-                          height={280}
-                          className="object-cover"
-                          loading={i < 3 ? "eager" : "lazy"}
-                          priority={i < 3}
-                          unoptimized={i < 3}
-                        />
-                      </div>
-                    ))
+                    ['/slider/1.jpg', '/slider/2.jpg', '/slider/3.jpg', '/slider/4.jpg', '/slider/5.jpg'].map((src, i) => {
+                      // დავრწმუნდეთ რომ src არ არის ცარიელი სტრინგი
+                      const imageSrc = src && src.trim() ? src : '/placeholder.svg?height=280&width=350&text=Loading...';
+                      
+                      return (
+                        <div
+                          key={i}
+                          className="relative flex-shrink-0 h-[280px]"
+                          style={{ width: "350px", marginRight: "10px" }}
+                        >
+                          <Image
+                            src={imageSrc}
+                            alt={`Best hotels in Kakheti - Serodani wooden cottages`}
+                            width={350}
+                            height={280}
+                            className="object-cover"
+                            loading={i < 3 ? "eager" : "lazy"}
+                            priority={i < 3}
+                            unoptimized={i < 3}
+                          />
+                        </div>
+                      );
+                    })
                   )}
                 </>
               )}
@@ -597,7 +690,7 @@ export default function KviriaHotel() {
                   }}
                 >
                   <Image
-                    src={storyImages[0]}
+                    src={storyImages[0] && storyImages[0].trim() ? storyImages[0] : '/placeholder.svg?height=1365&width=5005&text=Story+Image'}
                     alt="Nature hotel in Georgia - Georgian countryside hotel"
                     width={1200}
                     height={1365}
@@ -615,7 +708,7 @@ export default function KviriaHotel() {
                   }}
                 >
                   <Image
-                    src={placeholderStoryImages[0]}
+                    src={placeholderStoryImages[0] && placeholderStoryImages[0].trim() ? placeholderStoryImages[0] : '/placeholder.svg?height=1365&width=5005&text=Story+Image'}
                     alt="Nature hotel in Georgia - Georgian countryside hotel"
                     width={1200}
                     height={1365}
@@ -651,210 +744,85 @@ export default function KviriaHotel() {
       </section>
 
       {/* Gallery Section */}
-      <section id="gallery" className="py-20 bg-[#242323]">
+      <section id="gallery" ref={galleryRef} className="py-20 bg-[#242323]">
         <div className="container mx-auto px-4">
           <h2 className="text-4xl font-bold text-center mb-16 text-white">GALLERY</h2>
           <div className="relative max-w-5xl mx-auto">
             <div className="overflow-hidden rounded-lg">
               <div className="flex transition-transform duration-500 ease-in-out"
                    style={{ transform: `translateX(-${currentGalleryIndex * 100}%)` }}>
-                {/* First slide */}
+                {/* First slide - პრიორიტეტული ჩატვირთვა */}
                 <div className="flex-none w-full">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {galleryImages.slice(0, 3).map((src, i) => (
-                      <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
-                        <Image
-                          src={src}
-                          alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                          width={400}
-                          height={300}
-                          className="object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
-                            const parent = (e.target as HTMLElement).parentElement;
-                            if (parent) parent.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    ))}
+                    {galleryImages.slice(0, 3).map((src, i) => {
+                      // დავრწმუნდეთ რომ src არ არის ცარიელი სტრინგი
+                      const imageSrc = src && src.trim() ? src : '/placeholder.svg?height=300&width=400&text=Loading...';
+                      
+                      return (
+                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
+                          <Image
+                            src={imageSrc}
+                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
+                            width={400}
+                            height={300}
+                            className="object-cover"
+                            priority={true}
+                            loading="eager"
+                            unoptimized={true}
+                            onError={(e) => {
+                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
+                              const parent = (e.target as HTMLElement).parentElement;
+                              if (parent) parent.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Second slide */}
-                {galleryImages.length > 3 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {galleryImages.slice(3, 6).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
-                            className="object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
+                {/* მეორე და შემდგომი სლაიდები - მხოლოდ ხილული სლაიდების რენდერი */}
+                {Array.from({ length: Math.ceil(galleryImages.length / 3) - 1 }).map((_, slideIndex) => {
+                  const startIdx = (slideIndex + 1) * 3;
+                  const endIdx = startIdx + 3;
+                  const isVisible = slideIndex === currentGalleryIndex - 1 || 
+                                   slideIndex === currentGalleryIndex ||
+                                   slideIndex === currentGalleryIndex + 1;
+                  
+                  // თუ სლაიდი არ არის ხილული ან მისი მეზობელი, არ გამოვაჩინოთ
+                  if (!isVisible) {
+                    return <div key={slideIndex} className="flex-none w-full"></div>;
+                  }
+                  
+                  return (
+                    <div key={slideIndex} className="flex-none w-full">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {galleryImages.slice(startIdx, endIdx).map((src, i) => {
+                          // დავრწმუნდეთ რომ src არ არის ცარიელი სტრინგი
+                          const imageSrc = src && src.trim() ? src : '/placeholder.svg?height=300&width=400&text=Loading...';
+                          
+                          return (
+                            <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
+                              <Image
+                                src={imageSrc}
+                                alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
+                                width={400}
+                                height={300}
+                                className="object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                  // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
+                                  const parent = (e.target as HTMLElement).parentElement;
+                                  if (parent) parent.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Third slide */}
-                {galleryImages.length > 6 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {galleryImages.slice(6, 9).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
-                            className="object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Fourth slide */}
-                {galleryImages.length > 9 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {galleryImages.slice(9, 12).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
-                            className="object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Fifth slide */}
-                {galleryImages.length > 12 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {galleryImages.slice(12, 15).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
-                            className="object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sixth slide */}
-                {galleryImages.length > 15 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {galleryImages.slice(15, 18).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
-                            className="object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Seventh slide */}
-                {galleryImages.length > 18 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {galleryImages.slice(18, 21).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
-                            className="object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Eighth slide */}
-                {galleryImages.length > 21 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {galleryImages.slice(21).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
-                            className="object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  );
+                })}
               </div>
             </div>
             
@@ -898,7 +866,7 @@ export default function KviriaHotel() {
         <div className="container mx-auto px-4">
           <div className="relative w-full mx-auto h-[630px] max-w-[980px]">
             <Image
-              src={guestReviewImage || placeholderGuestReviewImage}
+              src={guestReviewImage && guestReviewImage.trim() ? guestReviewImage : placeholderGuestReviewImage}
               alt="Wine hotel Georgia - Guest reviews of Hotel Serodani in Kakheti"
               width={980}
               height={630}
