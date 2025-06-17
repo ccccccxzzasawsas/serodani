@@ -219,6 +219,7 @@ export default function WinesPage() {
               priority
               sizes="100vw"
               quality={85}
+              unoptimized
             />
             <div className="absolute inset-0 bg-black/20" />
           </div>
@@ -267,6 +268,7 @@ export default function WinesPage() {
                                 const container = (e.target as HTMLImageElement).parentElement;
                                 if (container) container.style.display = "none";
                               }}
+                              unoptimized
                             />
                           </div>
                         ))}
@@ -341,6 +343,7 @@ Our collection includes some of Georgia's most celebrated varieties:
                                 const container = (e.target as HTMLImageElement).parentElement;
                                 if (container) container.style.display = "none";
                               }}
+                              unoptimized
                             />
                           </div>
                         ))}

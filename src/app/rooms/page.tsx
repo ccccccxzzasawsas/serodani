@@ -210,7 +210,8 @@ export default function RoomsPage() {
             fill 
             className="object-cover object-center" 
             priority 
-            sizes="100vw" 
+            sizes="100vw"
+            unoptimized
           />
           <div className="absolute inset-0 bg-black/40" />
         </div>
@@ -247,7 +248,15 @@ export default function RoomsPage() {
                               {roomImages.map((imageUrl, imgIndex) => (
                                 <CarouselItem key={imgIndex}>
                                   <div className="relative h-96 w-full group">
-                                    <Image src={imageUrl || "/placeholder.svg?height=400&width=600"} alt={`${room.name} - Photo ${imgIndex + 1}`} fill className="object-cover rounded-lg" loading="lazy" sizes="(max-width: 1024px) 100vw, 50vw" />
+                                    <Image 
+                                      src={imageUrl || "/placeholder.svg?height=400&width=600"} 
+                                      alt={`${room.name} - Photo ${imgIndex + 1}`} 
+                                      fill 
+                                      className="object-cover rounded-lg" 
+                                      loading="lazy" 
+                                      sizes="(max-width: 1024px) 100vw, 50vw"
+                                      unoptimized
+                                    />
                                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                                       <div className="bg-white/90 rounded-full p-3">
                                         <Search className="h-6 w-6 text-gray-800" />
@@ -297,7 +306,15 @@ export default function RoomsPage() {
                               {roomImages.map((imageUrl, imgIndex) => (
                                 <CarouselItem key={imgIndex}>
                                   <div className="relative h-96 w-full group">
-                                    <Image src={imageUrl || "/placeholder.svg?height=400&width=600"} alt={`${room.name} - Photo ${imgIndex + 1}`} fill className="object-cover rounded-lg" loading="lazy" sizes="(max-width: 1024px) 100vw, 50vw" />
+                                    <Image 
+                                      src={imageUrl || "/placeholder.svg?height=400&width=600"} 
+                                      alt={`${room.name} - Photo ${imgIndex + 1}`} 
+                                      fill 
+                                      className="object-cover rounded-lg" 
+                                      loading="lazy" 
+                                      sizes="(max-width: 1024px) 100vw, 50vw"
+                                      unoptimized
+                                    />
                                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                                       <div className="bg-white/90 rounded-full p-3">
                                         <Search className="h-6 w-6 text-gray-800" />

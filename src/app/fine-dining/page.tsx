@@ -453,8 +453,7 @@ export default function FineDiningPage() {
               fill
               className="object-cover object-center"
               priority
-              sizes="100vw"
-              quality={85}
+              unoptimized
             />
           ) : (
             <div className="bg-gray-200 h-full w-full flex items-center justify-center text-gray-500">

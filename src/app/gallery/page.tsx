@@ -303,9 +303,12 @@ export default function GalleryPage() {
                       className="aspect-[4/3] relative"
                       onClick={() => openModal(image)}
                     >
-                      <img
+                      <Image
                         src={image}
-                        alt={`Wooden cottages in Georgia - Hotel Serodani gallery image`}
+                        alt={`Gallery image ${index + 1}`}
+                        width={400}
+                        height={300}
+                        unoptimized
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           // ფოტო შეცდომის შემთხვევაში მთლიანად წავშალოთ კონტეინერიდან

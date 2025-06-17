@@ -3,8 +3,8 @@ const nextConfig = {
   /* config options here */
   images: {
     domains: ["firebasestorage.googleapis.com"],
-    deviceSizes: [640, 1080],
-    imageSizes: [32, 64],
+    deviceSizes: [640, 1080, 1920],
+    imageSizes: [32, 96, 256],
     remotePatterns: [
       {
         protocol: 'https',
@@ -13,8 +13,7 @@ const nextConfig = {
       },
     ],
     formats: ['image/webp'],
-    minimumCacheTTL: 60 * 60 * 24 * 7,
-    disableStaticImages: true,
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 დღე
     unoptimized: true,
   },
   eslint: {
@@ -30,9 +29,9 @@ const nextConfig = {
   // ქეშირების კონფიგურაცია
   staticPageGenerationTimeout: 120, // 2 წუთი
   onDemandEntries: {
-    // სერვერის დაკეშირებული გვერდების შენახვის დრო
-    maxInactiveAge: 60 * 60 * 1000, // 1 საათი
-    // მაქსიმუმ რამდენი გვერდი შეინახოს ქეშში
+    // სერვერის დაკეშირებული გვერდების შენახვის დრო - გავზარდოთ
+    maxInactiveAge: 60 * 60 * 24 * 1000, // 24 საათი
+    // შევამციროთ დაკეშირებული გვერდების რაოდენობა
     pagesBufferLength: 2,
   },
 };

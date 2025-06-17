@@ -450,13 +450,11 @@ export default function KviriaHotel() {
           <Image 
             src={heroImage} 
             alt="Hotel in Kakheti - Serodani Boutique Wooden Cottages" 
-            fill 
-            className="object-cover object-center opacity-80"
-            loading="eager"
-            priority={true}
-            sizes="100vw"
-            fetchPriority="high"
-            quality={85}
+            width={1200} 
+            height={800} 
+            priority 
+            unoptimized
+            className="w-full h-full object-cover"
           />
         </div>
         <div className="relative z-10 flex flex-col justify-center items-center h-full">
@@ -506,13 +504,12 @@ export default function KviriaHotel() {
                         <Image
                           src={src}
                           alt={`Boutique hotel in Kakheti - Wooden cottages in Georgia`}
-                          fill
-                          sizes="350px"
+                          width={350}
+                          height={280}
                           className="object-cover"
                           loading={i < 6 ? "eager" : "lazy"}
                           priority={i < 3}
-                          quality={85}
-                          fetchPriority={i < 3 ? "high" : "auto"}
+                          unoptimized={i < 3}
                         />
                       </div>
                     ))
@@ -527,13 +524,12 @@ export default function KviriaHotel() {
                         <Image
                           src={src}
                           alt={`Best hotels in Kakheti - Serodani wooden cottages`}
-                          fill
-                          sizes="350px"
+                          width={350}
+                          height={280}
                           className="object-cover"
                           loading={i < 3 ? "eager" : "lazy"}
                           priority={i < 3}
-                          quality={85}
-                          fetchPriority={i < 3 ? "high" : "auto"}
+                          unoptimized={i < 3}
                         />
                       </div>
                     ))
@@ -603,7 +599,8 @@ export default function KviriaHotel() {
                   <Image
                     src={storyImages[0]}
                     alt="Nature hotel in Georgia - Georgian countryside hotel"
-                    fill
+                    width={1200}
+                    height={1365}
                     className="object-contain"
                     loading="lazy"
                     sizes="(max-width: 768px) 90vw, 1200px"
@@ -620,7 +617,8 @@ export default function KviriaHotel() {
                   <Image
                     src={placeholderStoryImages[0]}
                     alt="Nature hotel in Georgia - Georgian countryside hotel"
-                    fill
+                    width={1200}
+                    height={1365}
                     className="object-contain"
                     loading="lazy"
                     sizes="(max-width: 768px) 90vw, 1200px"
@@ -668,9 +666,9 @@ export default function KviriaHotel() {
                         <Image
                           src={src}
                           alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                          fill
+                          width={400}
+                          height={300}
                           className="object-cover"
-                          sizes="(max-width: 768px) 100vw, 400px"
                           loading="lazy"
                           onError={(e) => {
                             // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
@@ -692,9 +690,9 @@ export default function KviriaHotel() {
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
+                            width={400}
+                            height={300}
                             className="object-cover"
-                            sizes="(max-width: 768px) 100vw, 400px"
                             loading="lazy"
                             onError={(e) => {
                               // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
@@ -717,9 +715,9 @@ export default function KviriaHotel() {
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
+                            width={400}
+                            height={300}
                             className="object-cover"
-                            sizes="(max-width: 768px) 100vw, 400px"
                             loading="lazy"
                             onError={(e) => {
                               // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
@@ -742,9 +740,9 @@ export default function KviriaHotel() {
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
+                            width={400}
+                            height={300}
                             className="object-cover"
-                            sizes="(max-width: 768px) 100vw, 400px"
                             loading="lazy"
                             onError={(e) => {
                               // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
@@ -767,9 +765,9 @@ export default function KviriaHotel() {
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
+                            width={400}
+                            height={300}
                             className="object-cover"
-                            sizes="(max-width: 768px) 100vw, 400px"
                             loading="lazy"
                             onError={(e) => {
                               // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
@@ -792,9 +790,9 @@ export default function KviriaHotel() {
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
+                            width={400}
+                            height={300}
                             className="object-cover"
-                            sizes="(max-width: 768px) 100vw, 400px"
                             loading="lazy"
                             onError={(e) => {
                               // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
@@ -817,9 +815,9 @@ export default function KviriaHotel() {
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
+                            width={400}
+                            height={300}
                             className="object-cover"
-                            sizes="(max-width: 768px) 100vw, 400px"
                             loading="lazy"
                             onError={(e) => {
                               // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
@@ -842,9 +840,9 @@ export default function KviriaHotel() {
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
+                            width={400}
+                            height={300}
                             className="object-cover"
-                            sizes="(max-width: 768px) 100vw, 400px"
                             loading="lazy"
                             onError={(e) => {
                               // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
@@ -902,7 +900,8 @@ export default function KviriaHotel() {
             <Image
               src={guestReviewImage || placeholderGuestReviewImage}
               alt="Wine hotel Georgia - Guest reviews of Hotel Serodani in Kakheti"
-              fill
+              width={980}
+              height={630}
               className="object-cover"
               loading="lazy"
               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 90vw, 980px"
