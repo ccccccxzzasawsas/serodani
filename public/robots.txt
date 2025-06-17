@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Host
-Host: https://შენი-საიტი.ge
+Host: https://hotelserodani.com
 
 # Sitemaps
-Sitemap: https://შენი-საიტი.ge/sitemap.xml
+Sitemap: https://hotelserodani.com/sitemap.xml

@@ -3,8 +3,8 @@ const nextConfig = {
   /* config options here */
   images: {
     domains: ["firebasestorage.googleapis.com"],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 350],
+    deviceSizes: [640, 1080],
+    imageSizes: [32, 64],
     remotePatterns: [
       {
         protocol: 'https',
@@ -12,7 +12,10 @@ const nextConfig = {
         pathname: '/v0/b/serodani-b031d.firebasestorage.app/o/**',
       },
     ],
-    formats: ['image/webp']
+    formats: ['image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 7,
+    disableStaticImages: true,
+    unoptimized: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
@@ -30,7 +33,7 @@ const nextConfig = {
     // სერვერის დაკეშირებული გვერდების შენახვის დრო
     maxInactiveAge: 60 * 60 * 1000, // 1 საათი
     // მაქსიმუმ რამდენი გვერდი შეინახოს ქეშში
-    pagesBufferLength: 5,
+    pagesBufferLength: 2,
   },
 };
 
