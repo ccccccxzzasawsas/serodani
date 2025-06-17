@@ -572,26 +572,15 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
               {/* ოთახის დეტალები */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <div className="flex">
-                    {Array.from({ length: currentRoom.beds || 2 }).map((_, i) => (
-                      <User key={i} className="w-4 h-4 text-serodani" />
-                    ))}
-                  </div>
                   <span className="text-sm">Regular beds: {currentRoom.beds || 2}</span>
                 </div>
                 {currentRoom.extraBeds && currentRoom.extraBeds > 0 && (
                   <div className="flex items-center space-x-2">
-                    <div className="flex">
-                      {Array.from({ length: currentRoom.extraBeds }).map((_, i) => (
-                        <User key={i} className="w-4 h-4 text-amber-500" />
-                      ))}
-                    </div>
                     <span className="text-sm">Extra beds available: {currentRoom.extraBeds}</span>
                   </div>
                 )}
                 {currentRoom.minBookingBeds && currentRoom.minBookingBeds > 1 && (
                   <div className="flex items-center space-x-2">
-                    <Users className="w-4 h-4 text-serodani" />
                     <span className="text-sm">Min booking: {currentRoom.minBookingBeds} beds</span>
                   </div>
                 )}
@@ -723,7 +712,7 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                 {/* საწოლების რაოდენობა */}
                 <div className="mb-4">
                   <Label htmlFor="beds" className="mb-1 block">
-                    Number of Beds
+                    Number of guests
                   </Label>
                   <Select
                     value={numberOfRooms}
@@ -741,7 +730,6 @@ export function BookingModal({ isOpen, onClose, room }: BookingModalProps) {
                                 <User key={i} className="w-3 h-3 text-gray-600" />
                               ))}
                             </div>
-                            <span>{option.label}</span>
                           </div>
                         </SelectItem>
                       ))}
