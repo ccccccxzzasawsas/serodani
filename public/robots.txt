@@ -1,9 +1,12 @@
 # *
 User-agent: *
 Allow: /
+Disallow: /admin/
+Disallow: /admin/*
 
 # Host
 Host: https://hotelserodani.com
 
 # Sitemaps
 Sitemap: https://hotelserodani.com/sitemap.xml
+Sitemap: https://hotelserodani.com/sitemap-0.xml

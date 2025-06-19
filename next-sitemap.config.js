@@ -5,14 +5,15 @@ module.exports = {
     policies: [
       {
         userAgent: '*',
-        allow: '/'
+        allow: '/',
+        disallow: ['/admin/', '/admin/*']
       }
     ],
     additionalSitemaps: [
-      'https://hotelserodani.com/sitemap.xml',
+      'https://hotelserodani.com/sitemap-0.xml',
     ],
   },
-  exclude: ['/admin/*'],
+  exclude: ['/admin', '/admin/*', '/admin/login', '/admin/dashboard', '/admin/dashboard/*'],
   changefreq: 'weekly',
   priority: 0.7,
   sitemapSize: 5000,
