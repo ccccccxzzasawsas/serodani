@@ -1,17 +1,20 @@
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Contact Hotel Serodani – Book Your Stay in Kakheti",
-  description: "Reach out to book your stay at Hotel Serodani. Located in the heart of Kakheti wine region, we offer the perfect countryside getaway.",
+  title: "დაგვიკავშირდით",
+  description: "მოგვწერეთ ან დაგვიკავშირდით — სასტუმრო სეროდანის მისამართი და საკონტაქტო ინფორმაცია.",
   keywords: "Hotel in Kakheti, Contact Hotel Serodani, Book Kakheti hotel, Kakheti accommodation, Georgia hotel booking, Weekend getaway from Tbilisi",
   openGraph: {
-    title: "Contact Hotel Serodani – Book Your Stay in Kakheti",
-    description: "Reach out to book your stay at Hotel Serodani. Located in the heart of Kakheti wine region, we offer the perfect countryside getaway.",
+    title: "დაგვიკავშირდით",
+    description: "მოგვწერეთ ან დაგვიკავშირდით — სასტუმრო სეროდანის მისამართი და საკონტაქტო ინფორმაცია.",
     type: "website",
   },
   twitter: {
-    title: "Contact Hotel Serodani – Book Your Stay in Kakheti",
-    description: "Reach out to book your stay at Hotel Serodani. Located in the heart of Kakheti wine region, we offer the perfect countryside getaway.",
+    title: "დაგვიკავშირდით",
+    description: "მოგვწერეთ ან დაგვიკავშირდით — სასტუმრო სეროდანის მისამართი და საკონტაქტო ინფორმაცია.",
     card: "summary_large_image",
+  },
+  alternates: {
+    canonical: 'https://hotelserodani.com/contact',
   },
 } 

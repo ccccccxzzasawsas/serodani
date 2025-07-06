@@ -1,8 +1,8 @@
 # *
 User-agent: *
 Allow: /
+Disallow: /admin/login
 Disallow: /admin/
-Disallow: /admin/*
 
 # Host
 Host: https://hotelserodani.com
