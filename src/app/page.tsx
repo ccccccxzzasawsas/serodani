@@ -461,7 +461,12 @@ export default function KviriaHotel() {
           <div className="text-center text-white px-4">
             <div className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4">Hotel Serodani
             </div>
-            <div className="text-xl sm:text-2xl md:text-3xl tracking-widest font-light" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Wooden Cottages in the heart of Kaketi, Georgia</div>
+            <div
+              className="text-xl sm:text-2xl md:text-3xl tracking-widest font-extrabold text-white drop-shadow-lg"
+              style={{ fontFamily: "'Cormorant Garamond', serif", textShadow: "2px 2px 8px rgba(0,0,0,0.7)" }}
+            >
+              Wooden Cottages in the heart of Kaketi, Georgia
+            </div>
           </div>
         </div>
         
