@@ -6,6 +6,7 @@
  */
 
 import {onValueCreated} from "firebase-functions/v2/database";
+import {onCall, CallableOptions} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import * as nodemailer from "nodemailer";
@@ -23,9 +24,12 @@ const mailTransport = nodemailer.createTransport({
 
 // მეილის გაგზავნის ფუნქცია
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+  // Split email addresses if they are comma-separated
+  const toAddresses = to.includes(',') ? to.split(',').map(email => email.trim()).join(', ') : to;
+  
   const mailOptions = {
     from: `"Serodani Cottages" <noreply@serodani.ge>`,
-    to,
+    to: toAddresses,
     subject,
     html,
     replyTo: "osqelan1@gmail.com"
@@ -40,6 +44,51 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
     return false;
   }
 }
+
+// ფუნქცია, რომელიც დააბრუნებს ოთახების სიას admin-ისთვის
+export const getAllRooms = onCall({
+  region: 'europe-west1'
+}, async (request: any) => {
+  // აუთენტიფიკაციის შემოწმება
+  if (!request.auth) {
+    logger.error('Unauthorized attempt to access rooms');
+    return {
+      success: false,
+      error: 'Unauthorized'
+    };
+  }
+  
+  try {
+    // ოთახების ჩამოტვირთვა ბაზიდან
+    const roomsSnapshot = await admin.database().ref('/rooms').once('value');
+    const roomsData = roomsSnapshot.val();
+    
+    if (!roomsData) {
+      return {
+        success: true,
+        rooms: []
+      };
+    }
+    
+    // ოთახების სიის დაფორმატება
+    const rooms = Object.keys(roomsData).map(key => ({
+      id: key,
+      name: roomsData[key].name,
+      ...roomsData[key]
+    }));
+    
+    return {
+      success: true,
+      rooms
+    };
+  } catch (error) {
+    logger.error('Error fetching rooms:', error);
+    return {
+      success: false,
+      error: 'Failed to fetch rooms'
+    };
+  }
+});
 
 // ინტერფეისი ჯავშნის მონაცემებისთვის
 interface BookingData {
@@ -153,9 +202,9 @@ export const sendBookingNotificationToAdmin = onValueCreated({
 }, async (event) => {
   const bookingId = event.params.bookingId;
   const booking = event.data.val() as BookingData;
-  const adminEmail = 'osqelan1@gmail.com';
+  const adminEmails = 'osqelan1@gmail.com,serodanihotel@gmail.com,11osqel@gmail.com';
 
-  if (!booking || !adminEmail) {
+  if (!booking || !adminEmails) {
     logger.warn('No booking data or admin email configured');
     return null;
   }
@@ -205,8 +254,95 @@ export const sendBookingNotificationToAdmin = onValueCreated({
 
   // გავაგზავნოთ მეილი
   return sendEmail(
-    adminEmail,
+    adminEmails,
     `New Booking Alert - Serodani Cottages #${bookingId}`,
     emailHtml
   );
+});
+
+// ფუნქცია ადმინისტრატორის მიერ ოთახის დაჯავშვნისთვის
+export const markRoomAsBooked = onCall({
+  region: 'europe-west1'
+}, async (request: any) => {
+  const {roomId, roomName, checkInDate, checkOutDate, comment} = request.data;
+  
+  // აუთენტიფიკაციის შემოწმება
+  if (!request.auth) {
+    logger.error('Unauthorized attempt to mark room as booked');
+    return {
+      success: false,
+      error: 'Unauthorized'
+    };
+  }
+  
+  try {
+    // ახალი დაჯავშნის ჩანაწერის შექმნა
+    const newBookingRef = admin.database().ref('/bookings').push();
+    
+    const adminBooking = {
+      roomId,
+      roomName,
+      guestName: 'Admin Booking',
+      guestEmail: 'admin@serodani.ge',
+      checkInDate,
+      checkOutDate,
+      numberOfRooms: 1,
+      totalPrice: 0,
+      status: 'confirmed',
+      createdAt: new Date().toISOString(),
+      isAdminBooking: true,
+      comment: comment || 'Admin marked as booked'
+    };
+    
+    await newBookingRef.set(adminBooking);
+    
+    const bookingId = newBookingRef.key;
+    
+    // გააგზავნოთ შეტყობინება ადმინისტრატორებს
+    const adminEmails = 'osqelan1@gmail.com,serodanihotel@gmail.com,11osqel@gmail.com';
+    
+    const checkInDateFormatted = new Date(checkInDate).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const checkOutDateFormatted = new Date(checkOutDate).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+    
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4a6741;">Room Manually Marked as Booked</h2>
+        <p>An administrator has marked a room as booked in the Serodani Cottages system.</p>
+        
+        <div style="background-color: #f9f9f9; border-left: 4px solid #4a6741; padding: 15px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #4a6741;">Booking Details</h3>
+          <p><strong>Booking ID:</strong> ${bookingId}</p>
+          <p><strong>Room:</strong> ${roomName}</p>
+          <p><strong>Check-in:</strong> ${checkInDateFormatted}</p>
+          <p><strong>Check-out:</strong> ${checkOutDateFormatted}</p>
+          <p><strong>Type:</strong> <span style="color: #4a6741; font-weight: bold;">Admin Booking</span></p>
+          ${comment ? `<p><strong>Comment:</strong> ${comment}</p>` : ''}
+        </div>
+        
+        <p>You can view and manage this booking in the admin dashboard.</p>
+      </div>
+    `;
+    
+    await sendEmail(
+      adminEmails,
+      `Room Marked as Booked - Serodani Cottages #${bookingId}`,
+      emailHtml
+    );
+    
+    return {
+      success: true,
+      bookingId
+    };
+    
+  } catch (error) {
+    logger.error('Error marking room as booked:', error);
+    return {
+      success: false,
+      error: 'Failed to mark room as booked'
+    };
+  }
 });

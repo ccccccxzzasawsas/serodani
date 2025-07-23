@@ -12,7 +12,7 @@ import type { Booking, Room } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, Check, X, Info, Trash2 } from "lucide-react"
-import { format, isValid } from "date-fns"
+import { format, isValid, addDays } from "date-fns"
 import { 
   Table, 
   TableBody, 
@@ -51,6 +51,11 @@ export default function BookingsPage() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false)
+  const [markBookedOpen, setMarkBookedOpen] = useState(false)
+  const [selectedRoomId, setSelectedRoomId] = useState<string>("")
+  const [checkInDate, setCheckInDate] = useState<Date | null>(null)
+  const [checkOutDate, setCheckOutDate] = useState<Date | null>(null)
+  const [createBookingLoading, setCreateBookingLoading] = useState(false)
 
   useEffect(() => {
     // გამოვიყენოთ Realtime Database-ის მოსმენა
@@ -253,6 +258,66 @@ export default function BookingsPage() {
     }
   }
 
+  const createManualBooking = async () => {
+    if (!selectedRoomId || !checkInDate || !checkOutDate) {
+      toast({
+        title: "შეცდომა",
+        description: "გთხოვთ შეავსოთ ყველა ველი",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setCreateBookingLoading(true);
+      
+      const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+      if (!selectedRoom) {
+        throw new Error("ოთახი ვერ მოიძებნა");
+      }
+      
+             // შევქმნათ ახალი ჯავშანი ადმინისტრატორის მიერ
+       const newBooking = {
+         roomId: selectedRoom.id,
+         roomName: selectedRoom.name || "ოთახი",
+         guestName: "ადმინისტრატორის ჯავშანი",
+         guestEmail: "admin@serodani.ge",
+         checkInDate: checkInDate,
+         checkOutDate: checkOutDate,
+         beds: selectedRoom.beds || 2,
+         numberOfRooms: 1,
+         totalPrice: selectedRoom.price || 0,
+         status: 'confirmed' as const,
+         createdAt: new Date(),
+         comment: "ადმინისტრატორის მიერ დამატებული ჯავშანი"
+       };
+      
+      // დავამატოთ Realtime Database-ში
+      await updateBookingInRealtime(Date.now().toString(), newBooking);
+      
+      toast({
+        title: "წარმატება",
+        description: "ოთახი წარმატებით მოინიშნა დაჯავშნულად",
+      });
+      
+      // დავხუროთ დიალოგი და გავასუფთაოთ ველები
+      setMarkBookedOpen(false);
+      setSelectedRoomId("");
+      setCheckInDate(null);
+      setCheckOutDate(null);
+      
+    } catch (error) {
+      console.error("Error creating manual booking:", error);
+      toast({
+        title: "შეცდომა",
+        description: "ოთახის დაჯავშნა ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    } finally {
+      setCreateBookingLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: Booking['status']) => {
     // თუ სტატუსი არ არის მითითებული, გამოვიყენოთ 'pending'
     const bookingStatus = status || 'pending';
@@ -278,6 +343,16 @@ export default function BookingsPage() {
       <h1 className="text-3xl font-bold mb-2">ჯავშნების მართვა</h1>
       <p className="text-gray-600 mb-8">ნახეთ და მართეთ კოტეჯების ჯავშნები</p>
 
+      <div className="flex justify-between items-center mb-4">
+        <div></div>
+        <Button 
+          className="bg-blue-600 hover:bg-blue-700" 
+          onClick={() => setMarkBookedOpen(true)}
+        >
+          მონიშნე ოთახი დაჯავშნულად
+        </Button>
+      </div>
+      
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -350,7 +425,7 @@ export default function BookingsPage() {
 
       {/* ჯავშნის დეტალების დიალოგი */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="sm:max-w-md bg-white shadow-lg border border-gray-200">
+        <DialogContent className="sm:max-w-md bg-white shadow-lg border border-gray-200 z-50">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">ჯავშნის დეტალები</DialogTitle>
             <DialogDescription>
@@ -477,6 +552,86 @@ export default function BookingsPage() {
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
               წაშლა
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* ოთახის დაჯავშნის დიალოგი */}
+      <Dialog open={markBookedOpen} onOpenChange={setMarkBookedOpen}>
+        <DialogContent className="sm:max-w-md bg-white shadow-lg border border-gray-200">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">ოთახის დაჯავშნა</DialogTitle>
+            <DialogDescription>
+              მონიშნეთ ოთახი დაჯავშნულად მითითებული თარიღებისთვის
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">აირჩიეთ ოთახი</h3>
+              <Select
+                value={selectedRoomId}
+                onValueChange={setSelectedRoomId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="აირჩიეთ ოთახი" />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50 shadow-lg">
+                  {rooms.map((room) => (
+                    <SelectItem key={room.id} value={room.id}>
+                      {room.name || "ოთახი " + room.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">შემოსვლის თარიღი</h3>
+              <div className="flex items-center gap-2 border rounded-md p-2">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <input 
+                  type="date" 
+                  className="w-full outline-none bg-transparent"
+                  value={checkInDate ? format(new Date(checkInDate), "yyyy-MM-dd") : ""}
+                  onChange={(e) => setCheckInDate(new Date(e.target.value))} 
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">გასვლის თარიღი</h3>
+              <div className="flex items-center gap-2 border rounded-md p-2">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <input 
+                  type="date" 
+                  className="w-full outline-none bg-transparent"
+                  value={checkOutDate ? format(new Date(checkOutDate), "yyyy-MM-dd") : ""}
+                  onChange={(e) => setCheckOutDate(new Date(e.target.value))} 
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setMarkBookedOpen(false);
+                setSelectedRoomId("");
+                setCheckInDate(null);
+                setCheckOutDate(null);
+              }}
+            >
+              გაუქმება
+            </Button>
+            <Button 
+              onClick={createManualBooking}
+              disabled={createBookingLoading || !selectedRoomId || !checkInDate || !checkOutDate}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {createBookingLoading ? "მიმდინარეობს..." : "დაჯავშნა"}
             </Button>
           </DialogFooter>
         </DialogContent>
