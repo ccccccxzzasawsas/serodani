@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Search, Menu, X, User } from "lucide-react"
+import { Search, Menu, X, User, Settings } from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
 import { collection, getDocs, doc, getDoc } from "firebase/firestore"
@@ -25,7 +25,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel"
-import { BookingModal } from "@/components/booking/BookingModal"
+import { BookingButton } from "@/components/booking-button"
 import { fetchRooms } from "@/lib/data-fetching"
 
 export default function RoomsPage() {
@@ -37,9 +37,9 @@ export default function RoomsPage() {
   const [selectedRoomForImage, setSelectedRoomForImage] = useState<Room | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
-  // Booking Modal State
-  const [bookingModalOpen, setBookingModalOpen] = useState(false)
-  const [selectedRoomForBooking, setSelectedRoomForBooking] = useState<Room | null>(null)
+  // წავშალოთ Booking Modal სთეითი
+  // const [bookingModalOpen, setBookingModalOpen] = useState(false)
+  // const [selectedRoomForBooking, setSelectedRoomForBooking] = useState<Room | null>(null)
 
   useEffect(() => {
     fetchAllRooms()
@@ -92,10 +92,7 @@ export default function RoomsPage() {
     setImageDialogOpen(true)
   }
   
-  const openBookingDialog = (room: Room) => {
-    setSelectedRoomForBooking(room)
-    setBookingModalOpen(true)
-  }
+  // წავშალოთ openBookingDialog ფუნქცია სრულად
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -286,7 +283,12 @@ export default function RoomsPage() {
                           {room.description && <p className="text-gray-600 leading-relaxed">{room.description}</p>}
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                             <div></div>
-                            <Button onClick={() => openBookingDialog(room)} className="bg-blue-600 hover:bg-blue-700 text-white">Book Now</Button>
+                            <BookingButton 
+                              roomName={room.name}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              Book Now
+                            </BookingButton>
                           </div>
                         </div>
                       </>
@@ -297,7 +299,12 @@ export default function RoomsPage() {
                           {room.description && <p className="text-gray-600 leading-relaxed">{room.description}</p>}
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                             <div></div>
-                            <Button onClick={() => openBookingDialog(room)} className="bg-blue-600 hover:bg-blue-700 text-white">Book Now</Button>
+                            <BookingButton 
+                              roomName={room.name}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              Book Now
+                            </BookingButton>
                           </div>
                         </div>
                         <div className="relative order-1 lg:order-2 cursor-pointer" onClick={() => openImageDialog(room)}>
@@ -383,12 +390,6 @@ export default function RoomsPage() {
         </DialogContent>
       </Dialog>
       
-      <BookingModal 
-        isOpen={bookingModalOpen} 
-        onClose={() => setBookingModalOpen(false)}
-        room={selectedRoomForBooking}
-      />
-
       <Footer />
     </div>
   )

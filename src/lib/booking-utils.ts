@@ -1,3 +1,11 @@
+/**
+ * DEPRECATED - ეს ფაილი მოძველებულია და უნდა გამოვიყენოთ Arealy-ის სისტემა ჯავშნებისთვის
+ * იხილეთ README-AREALY-MIGRATION.md გადასვლის ინსტრუქციებისთვის
+ * 
+ * არ გამოიყენოთ ეს ფუნქციები ახალი ფუნქციონალისთვის.
+ * ნაცვლად ამისა, გადაამისამართეთ მომხმარებლები /booking გვერდზე.
+ */
+
 import { collection, addDoc, getDocs, query, where, orderBy, getDoc, doc } from "firebase/firestore";
 import { db } from "./firebase";
 import { saveBookingToRealtime, getAllBookingsFromRealtime } from "./realtimeDb";
@@ -442,4 +450,37 @@ export const getAvailableRooms = async (
         console.error("Error getting available rooms:", error);
         return [];
     }
+}; 
+
+/**
+ * Generates a booking URL with parameters for Arealy booking engine
+ * @param checkInDate - Optional check-in date in format DD.MM.YYYY
+ * @param checkOutDate - Optional check-out date in format DD.MM.YYYY
+ * @param roomType - Optional room type ID for Arealy
+ * @returns URL string for the booking page
+ */
+export function getBookingUrl(checkInDate?: string, checkOutDate?: string, roomType?: string): string {
+  const baseUrl = '/booking';
+  const params = new URLSearchParams();
+  
+  if (checkInDate) {
+    params.append('checkInDate', checkInDate);
+  }
+  
+  if (checkOutDate) {
+    params.append('checkOutDate', checkOutDate);
+  }
+  
+  if (roomType) {
+    params.append('roomType', roomType);
+  }
+  
+  const queryString = params.toString();
+  return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+}
+
+// Room type IDs for Arealy
+export const AREALY_ROOM_TYPES = {
+  STANDARD: '173',
+  // Add other room type IDs here as needed
 }; 
