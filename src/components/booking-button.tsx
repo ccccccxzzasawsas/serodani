@@ -80,13 +80,19 @@ export function BookingButton({
   daysFromNow = 1,
   stayDuration = 1
 }: BookingButtonProps) {
+  // Debug log to see what roomName is being passed
+  console.log("BookingButton received roomName:", roomName);
+  
   // ავტომატურად მოვძებნოთ roomTypeId თუ მხოლოდ roomName-ია მოცემული
   const finalRoomTypeId = roomTypeId || (roomName ? mapRoomNameToArealyId(roomName) : AREALY_ROOM_TYPES.STANDARD);
+  
+  // Debug log to see what ID was resolved
+  console.log("Resolved roomTypeId:", finalRoomTypeId);
 
   // Format dates in DD.MM.YYYY format for Arealy
   // For testing/demo purposes, we could use fixed dates from the example
   // Otherwise use dynamic dates as before
-  const useFixedDates = false; // Set to true to use fixed dates from the example
+  const useFixedDates = true; // Set to true to use fixed dates from the example
   
   let checkInDate, checkOutDate;
   

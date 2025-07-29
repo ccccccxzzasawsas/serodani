@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Search, Menu, X, User, Settings } from "lucide-react"
+import { Search, Menu, X, User } from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
 import { collection, getDocs, doc, getDoc } from "firebase/firestore"
@@ -37,7 +37,7 @@ export default function RoomsPage() {
   const [selectedRoomForImage, setSelectedRoomForImage] = useState<Room | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
-  // წავშალოთ Booking Modal სთეითი
+  // წავშალოთ ეს სთეითები, აღარ გვჭირდება
   // const [bookingModalOpen, setBookingModalOpen] = useState(false)
   // const [selectedRoomForBooking, setSelectedRoomForBooking] = useState<Room | null>(null)
 
@@ -63,7 +63,22 @@ export default function RoomsPage() {
       setLoading(true)
       const roomsList = await fetchRooms()
       
+      // Log detailed room info before sorting
+      console.log("Unsorted rooms:", roomsList.map(room => ({
+        id: room.id,
+        name: room.name,
+        position: room.position || 0
+      })));
+      
       const sortedRooms = roomsList.sort((a, b) => (a.position || 0) - (b.position || 0))
+      
+      // Add debug log to see rooms and their names
+      console.log("Sorted rooms:", sortedRooms.map(room => ({
+        id: room.id,
+        name: room.name,
+        position: room.position || 0
+      })));
+      
       setAllRooms(sortedRooms)
     } catch (error) {
       console.error("Error fetching rooms:", error)
@@ -92,7 +107,11 @@ export default function RoomsPage() {
     setImageDialogOpen(true)
   }
   
-  // წავშალოთ openBookingDialog ფუნქცია სრულად
+  // წავშალოთ openBookingDialog ფუნქცია, აღარ გვჭირდება
+  // const openBookingDialog = (room: Room) => {
+  //   setSelectedRoomForBooking(room)
+  //   setBookingModalOpen(true)
+  // }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -390,6 +409,13 @@ export default function RoomsPage() {
         </DialogContent>
       </Dialog>
       
+      {/* წავშალოთ ეს კომპონენტი, აღარ გვჭირდება */}
+      {/* <BookingModal 
+        isOpen={bookingModalOpen} 
+        onClose={() => setBookingModalOpen(false)}
+        room={selectedRoomForBooking}
+      /> */}
+
       <Footer />
     </div>
   )

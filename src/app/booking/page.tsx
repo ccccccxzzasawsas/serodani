@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
 // Prevent static generation for this page
 export const dynamic = 'force-dynamic'
 
-export default function BookingPage() {
+// Create a separate client component for handling search params
+function BookingPageContent() {
   const searchParams = useSearchParams()
   const checkInDate = searchParams.get('checkInDate')
   const checkOutDate = searchParams.get('checkOutDate')
@@ -113,5 +115,23 @@ export default function BookingPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+// Main page component that wraps the client component in Suspense
+export default function BookingPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-white py-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-2xl font-semibold mb-4">დაჯავშნე შენზე მორგებულად</h1>
+          <div className="relative h-[800px] bg-gray-50 border rounded-lg shadow-md flex items-center justify-center">
+            <div className="text-gray-600 text-lg">იტვირთება ჯავშნის სისტემა...</div>
+          </div>
+        </div>
+      </main>
+    }>
+      <BookingPageContent />
+    </Suspense>
   )
 }

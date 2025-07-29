@@ -3,11 +3,13 @@
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format, addDays } from 'date-fns'
+import { Suspense } from 'react'
 
 // Tell Next.js to always render this page on-demand, not during build time
 export const dynamic = 'force-dynamic'
 
-export default function BookingRedirect() {
+// Create a separate client component to handle search params
+function BookingRedirectContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -89,5 +91,23 @@ export default function BookingRedirect() {
         </noscript>
       </div>
     </div>
+  )
+}
+
+// Main page component that wraps the client component in Suspense
+export default function BookingRedirectPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
+          <h1 className="text-2xl font-semibold mb-4">იტვირთება...</h1>
+          <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-500 animate-pulse rounded-full w-full"></div>
+          </div>
+        </div>
+      </div>
+    }>
+      <BookingRedirectContent />
+    </Suspense>
   )
 } 
