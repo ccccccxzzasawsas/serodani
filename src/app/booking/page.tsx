@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
+// Prevent static generation for this page
+export const dynamic = 'force-dynamic'
+
 export default function BookingPage() {
   const searchParams = useSearchParams()
   const checkInDate = searchParams.get('checkInDate')

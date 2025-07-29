@@ -4,6 +4,9 @@ import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format, addDays } from 'date-fns'
 
+// Tell Next.js to always render this page on-demand, not during build time
+export const dynamic = 'force-dynamic'
+
 export default function BookingRedirect() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -17,10 +20,15 @@ export default function BookingRedirect() {
   // მთავარი ფუნქციონალი, რომელიც გადაამისამართებს Arealy-ზე
   useEffect(() => {
     // არეალის ოთახების ID-ების მეფინგი ჩვენს ID-ებთან
-    // მაგალითად, თქვენი სისტემის "room-1" შეესაბამება Arealy-ს "173" ID-ს
+    // გამოვიყენოთ იგივე ID-ები, რაც booking-button.tsx ფაილშია
     const roomMapping: Record<string, string> = {
-      'default': '173', // Arealy-ს default ოთახი
-      // აქ დაამატეთ სხვა ოთახების მეფინგი საჭიროების მიხედვით
+      'default': '173',
+      'Two-Bedroom Cottage': '1731',
+      'Cottage': '1732',
+      'One-Bedroom Cottage': '1733',
+      'Family Room with Balcony': '1734',
+      'Cottage with Garden View': '1735',
+      'Large Twin Room': '1736'
     }
     
     // კონვერტაცია DATE ობიექტიდან Arealy-ს ფორმატში (DD.MM.YYYY)
@@ -56,7 +64,7 @@ export default function BookingRedirect() {
     
     // რედირექტი
     router.replace(redirectUrl)
-  }, [])
+  }, [router, roomId, checkInParam, checkOutParam, guests])
   
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
@@ -66,6 +74,19 @@ export default function BookingRedirect() {
         <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
           <div className="h-full bg-serodani animate-pulse rounded-full w-full"></div>
         </div>
+        
+        {/* No-JS fallback with direct link */}
+        <noscript>
+          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
+            <p className="text-yellow-800 mb-3">თუ ავტომატურად არ გადამისამართდით, დააჭირეთ ღილაკს:</p>
+            <a 
+              href="/booking" 
+              className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              გადასვლა ჯავშნის გვერდზე
+            </a>
+          </div>
+        </noscript>
       </div>
     </div>
   )
