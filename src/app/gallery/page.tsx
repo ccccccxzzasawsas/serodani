@@ -177,7 +177,7 @@ export default function GalleryPage() {
                 className="border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black"
                 asChild
               >
-                <Link href="/rooms">Book Now</Link>
+                <Link href="/booking?checkInDate=28.07.2025&checkOutDate=29.07.2025">Book Now</Link>
               </Button>
 
               {/* Login/User Menu */}
@@ -257,6 +257,20 @@ export default function GalleryPage() {
               >
                 CONTACT
               </a>
+              
+              {/* Book Now Button for Mobile */}
+              <div className="py-2">
+                <div onClick={() => setMobileMenuOpen(false)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black"
+                    asChild
+                  >
+                    <Link href="/booking?checkInDate=28.07.2025&checkOutDate=29.07.2025">Book Now</Link>
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -141,6 +141,14 @@ export default function RoomsPage() {
             </div>
             
             <div className="flex items-center space-x-4">
+              <Button
+                variant="outline"
+                className="border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black"
+                asChild
+              >
+                <Link href="/booking?checkInDate=28.07.2025&checkOutDate=29.07.2025">Book Now</Link>
+              </Button>
+
               {user ? (
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2 text-sm">
@@ -213,6 +221,19 @@ export default function RoomsPage() {
               >
                 CONTACT
               </a>
+              
+              <div className="py-2">
+                <div onClick={() => setMobileMenuOpen(false)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-black"
+                    asChild
+                  >
+                    <Link href="/booking?checkInDate=28.07.2025&checkOutDate=29.07.2025">Book Now</Link>
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
