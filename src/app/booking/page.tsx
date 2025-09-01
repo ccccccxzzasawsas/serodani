@@ -103,7 +103,7 @@ function BookingPageContent() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-semibold mb-4">დაჯავშნე შენზე მორგებულად</h1>
 
-        <div className="relative h-[800px] bg-gray-50 border rounded-lg shadow-md overflow-hidden">
+        <div className="relative min-h-[800px] bg-gray-50 border rounded-lg shadow-md">
           {!isLoaded && (
             <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/80">
               <div className="text-gray-600 text-lg">იტვირთება ჯავშნის სისტემა...</div>
@@ -111,7 +111,7 @@ function BookingPageContent() {
           )}
 
           {/* Arealy Booking Placeholder */}
-          <div id="ar-root" data-property="270" />
+          <div id="ar-root" data-property="270" className="w-full" />
         </div>
       </div>
     </main>
@@ -125,7 +125,7 @@ export default function BookingPage() {
       <main className="min-h-screen bg-white py-12 px-4">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl font-semibold mb-4">დაჯავშნე შენზე მორგებულად</h1>
-          <div className="relative h-[800px] bg-gray-50 border rounded-lg shadow-md flex items-center justify-center">
+          <div className="relative min-h-[800px] bg-gray-50 border rounded-lg shadow-md flex items-center justify-center">
             <div className="text-gray-600 text-lg">იტვირთება ჯავშნის სისტემა...</div>
           </div>
         </div>
