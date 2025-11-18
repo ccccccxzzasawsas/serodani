@@ -260,9 +260,30 @@ export default function KviriaHotel() {
     };
   }, [sliderImages, loading]); // დავამატოთ loading უკან დამოკიდებულებებში
 
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Reset gallery index when switching between mobile/desktop
+  useEffect(() => {
+    const imagesCount = galleryImages.length > 0 ? galleryImages.length : placeholderGalleryImages.length
+    const maxSlides = isMobile ? imagesCount : Math.ceil(imagesCount / 3)
+    if (currentGalleryIndex >= maxSlides) {
+      setCurrentGalleryIndex(Math.max(0, maxSlides - 1))
+    }
+  }, [isMobile, galleryImages.length])
+
   const nextGalleryImage = () => {
     setCurrentGalleryIndex((prev) => {
-      const maxSlides = Math.ceil((galleryImages.length > 0 ? galleryImages.length : placeholderGalleryImages.length) / 3)
+      const imagesCount = galleryImages.length > 0 ? galleryImages.length : placeholderGalleryImages.length
+      const maxSlides = isMobile ? imagesCount : Math.ceil(imagesCount / 3)
       return prev < maxSlides - 1 ? prev + 1 : prev
     })
   }
@@ -517,18 +538,17 @@ export default function KviriaHotel() {
                     [...sliderImages, ...sliderImages].map((src, i) => (
                       <div
                         key={i}
-                        className="relative flex-shrink-0 h-[280px]"
-                        style={{ width: "350px", marginRight: "10px" }}
+                        className="relative flex-shrink-0 h-[280px] w-[350px] overflow-hidden"
+                        style={{ marginRight: "10px" }}
                       >
                         <Image
                           src={src}
                           alt={`Boutique hotel in Kakheti - Wooden cottages in Georgia`}
-                          width={350}
-                          height={280}
+                          fill
                           className="object-cover"
+                          sizes="350px"
                           loading={i < 6 ? "eager" : "lazy"}
-                          priority={i < 3}
-                          unoptimized={i < 3}
+                          unoptimized={true}
                         />
                       </div>
                     ))
@@ -537,18 +557,17 @@ export default function KviriaHotel() {
                     ['/slider/1.jpg', '/slider/2.jpg', '/slider/3.jpg', '/slider/4.jpg', '/slider/5.jpg'].map((src, i) => (
                       <div
                         key={i}
-                        className="relative flex-shrink-0 h-[280px]"
-                        style={{ width: "350px", marginRight: "10px" }}
+                        className="relative flex-shrink-0 h-[280px] w-[350px] overflow-hidden"
+                        style={{ marginRight: "10px" }}
                       >
                         <Image
                           src={src}
                           alt={`Best hotels in Kakheti - Serodani wooden cottages`}
-                          width={350}
-                          height={280}
+                          fill
                           className="object-cover"
+                          sizes="350px"
                           loading={i < 3 ? "eager" : "lazy"}
-                          priority={i < 3}
-                          unoptimized={i < 3}
+                          unoptimized={true}
                         />
                       </div>
                     ))
@@ -581,7 +600,7 @@ export default function KviriaHotel() {
       </section>
 
       {/* Our Story - Simplified with 3 photos */}
-      <section className="py-20 bg-[#242323]">
+      <section className="pt-8 pb-20 bg-[#242323]">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-8 text-white">OUR STORY</h2>
           <div className="max-w-4xl mx-auto space-y-6 text-gray-300 leading-relaxed mb-12">
@@ -673,24 +692,58 @@ export default function KviriaHotel() {
       <section id="gallery" className="py-20 bg-[#242323]">
         <div className="container mx-auto px-4">
           <h2 className="text-4xl font-bold text-center mb-16 text-white">GALLERY</h2>
-          <div className="relative max-w-5xl mx-auto">
-            <div className="overflow-hidden rounded-lg">
+          
+          <div className="relative max-w-5xl mx-auto flex items-center gap-4">
+            {/* Left Navigation Button - Outside first photo */}
+            <Button
+              variant="outline"
+              size="lg"
+              className="bg-orange-400 hover:bg-orange-500 text-white border-orange-400 px-6 py-3 rounded-lg shadow-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+              onClick={prevGalleryImage}
+              disabled={currentGalleryIndex === 0}
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </Button>
+            
+            {/* Gallery Container */}
+            <div className="flex-1 overflow-hidden rounded-lg">
               <div className="flex transition-transform duration-500 ease-in-out"
                    style={{ transform: `translateX(-${currentGalleryIndex * 100}%)` }}>
-                {/* First slide */}
-                <div className="flex-none w-full">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Mobile: Individual slides - one photo per slide */}
+                {galleryImages.map((src, i) => (
+                  <div key={`mobile-${i}`} className="flex-none w-full block md:hidden">
+                    <div className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
+                      <Image
+                        src={src}
+                        alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
+                        fill
+                        className="object-cover"
+                        sizes="100vw"
+                        loading="lazy"
+                        unoptimized={true}
+                        onError={(e) => {
+                          const parent = (e.target as HTMLElement).parentElement;
+                          if (parent) parent.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                {/* Desktop: First slide - 3 photos */}
+                <div className="flex-none w-full hidden md:block">
+                  <div className="grid grid-cols-3 gap-6">
                     {galleryImages.slice(0, 3).map((src, i) => (
-                      <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
+                      <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
                         <Image
                           src={src}
                           alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                          width={400}
-                          height={300}
+                          fill
                           className="object-cover"
+                          sizes="(max-width: 1024px) 33vw, 400px"
                           loading="lazy"
+                          unoptimized={true}
                           onError={(e) => {
-                            // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
                             const parent = (e.target as HTMLElement).parentElement;
                             if (parent) parent.style.display = 'none';
                           }}
@@ -700,21 +753,20 @@ export default function KviriaHotel() {
                   </div>
                 </div>
 
-                {/* Second slide */}
+                {/* Desktop: Second slide - 3 photos */}
                 {galleryImages.length > 3 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex-none w-full hidden md:block">
+                    <div className="grid grid-cols-3 gap-6">
                       {galleryImages.slice(3, 6).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
+                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
+                            fill
                             className="object-cover"
+                            sizes="(max-width: 1024px) 33vw, 400px"
                             loading="lazy"
                             onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
                               const parent = (e.target as HTMLElement).parentElement;
                               if (parent) parent.style.display = 'none';
                             }}
@@ -725,21 +777,20 @@ export default function KviriaHotel() {
                   </div>
                 )}
 
-                {/* Third slide */}
+                {/* Desktop: Third slide - 3 photos */}
                 {galleryImages.length > 6 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex-none w-full hidden md:block">
+                    <div className="grid grid-cols-3 gap-6">
                       {galleryImages.slice(6, 9).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
+                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
+                            fill
                             className="object-cover"
+                            sizes="(max-width: 1024px) 33vw, 400px"
                             loading="lazy"
                             onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
                               const parent = (e.target as HTMLElement).parentElement;
                               if (parent) parent.style.display = 'none';
                             }}
@@ -750,21 +801,20 @@ export default function KviriaHotel() {
                   </div>
                 )}
 
-                {/* Fourth slide */}
+                {/* Desktop: Fourth slide - 3 photos */}
                 {galleryImages.length > 9 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex-none w-full hidden md:block">
+                    <div className="grid grid-cols-3 gap-6">
                       {galleryImages.slice(9, 12).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
+                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
+                            fill
                             className="object-cover"
+                            sizes="(max-width: 1024px) 33vw, 400px"
                             loading="lazy"
                             onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
                               const parent = (e.target as HTMLElement).parentElement;
                               if (parent) parent.style.display = 'none';
                             }}
@@ -775,21 +825,20 @@ export default function KviriaHotel() {
                   </div>
                 )}
 
-                {/* Fifth slide */}
+                {/* Desktop: Fifth slide - 3 photos */}
                 {galleryImages.length > 12 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex-none w-full hidden md:block">
+                    <div className="grid grid-cols-3 gap-6">
                       {galleryImages.slice(12, 15).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
+                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
+                            fill
                             className="object-cover"
+                            sizes="(max-width: 1024px) 33vw, 400px"
                             loading="lazy"
                             onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
                               const parent = (e.target as HTMLElement).parentElement;
                               if (parent) parent.style.display = 'none';
                             }}
@@ -800,21 +849,20 @@ export default function KviriaHotel() {
                   </div>
                 )}
 
-                {/* Sixth slide */}
+                {/* Desktop: Sixth slide - 3 photos */}
                 {galleryImages.length > 15 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex-none w-full hidden md:block">
+                    <div className="grid grid-cols-3 gap-6">
                       {galleryImages.slice(15, 18).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
+                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
+                            fill
                             className="object-cover"
+                            sizes="(max-width: 1024px) 33vw, 400px"
                             loading="lazy"
                             onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
                               const parent = (e.target as HTMLElement).parentElement;
                               if (parent) parent.style.display = 'none';
                             }}
@@ -825,21 +873,20 @@ export default function KviriaHotel() {
                   </div>
                 )}
 
-                {/* Seventh slide */}
+                {/* Desktop: Seventh slide - 3 photos */}
                 {galleryImages.length > 18 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex-none w-full hidden md:block">
+                    <div className="grid grid-cols-3 gap-6">
                       {galleryImages.slice(18, 21).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
+                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
+                            fill
                             className="object-cover"
+                            sizes="(max-width: 1024px) 33vw, 400px"
                             loading="lazy"
                             onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
                               const parent = (e.target as HTMLElement).parentElement;
                               if (parent) parent.style.display = 'none';
                             }}
@@ -850,21 +897,20 @@ export default function KviriaHotel() {
                   </div>
                 )}
 
-                {/* Eighth slide */}
+                {/* Desktop: Eighth slide - remaining photos */}
                 {galleryImages.length > 21 && (
-                  <div className="flex-none w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex-none w-full hidden md:block">
+                    <div className="grid grid-cols-3 gap-6">
                       {galleryImages.slice(21).map((src, i) => (
-                        <div key={i} className="relative h-[300px] rounded-lg overflow-hidden shadow-lg">
+                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
                           <Image
                             src={src}
                             alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            width={400}
-                            height={300}
+                            fill
                             className="object-cover"
+                            sizes="(max-width: 1024px) 33vw, 400px"
                             loading="lazy"
                             onError={(e) => {
-                              // მთლიანი კონტეინერის დამალვა შეცდომის შემთხვევაში
                               const parent = (e.target as HTMLElement).parentElement;
                               if (parent) parent.style.display = 'none';
                             }}
@@ -877,37 +923,38 @@ export default function KviriaHotel() {
               </div>
             </div>
             
+            {/* Right Navigation Button - Outside last photo */}
             <Button
               variant="outline"
-              size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 border-orange-400 z-10"
-              onClick={prevGalleryImage}
-              disabled={currentGalleryIndex === 0}
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 border-orange-400 z-10"
+              size="lg"
+              className="bg-orange-400 hover:bg-orange-500 text-white border-orange-400 px-6 py-3 rounded-lg shadow-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
               onClick={nextGalleryImage}
-              disabled={currentGalleryIndex >= Math.ceil(galleryImages.length / 3) - 1}
+              disabled={
+                isMobile 
+                  ? currentGalleryIndex >= galleryImages.length - 1
+                  : currentGalleryIndex >= Math.ceil(galleryImages.length / 3) - 1
+              }
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-8 h-8" />
             </Button>
-            
-            <div className="flex justify-center mt-6 gap-2">
-              {Array.from({ length: Math.ceil(galleryImages.length / 3) }).map((_, i) => (
-                <button
-                  key={i}
-                  className={`w-3 h-3 rounded-full transition-colors ${
-                    i === currentGalleryIndex ? 'bg-orange-400' : 'bg-gray-600 hover:bg-gray-500'
-                  }`}
-                  onClick={() => setCurrentGalleryIndex(i)}
-                  aria-label={`View gallery page ${i + 1}`}
-                />
-              ))}
-            </div>
+          </div>
+          
+          {/* Dots Indicator */}
+          <div className="flex justify-center mt-6 gap-2">
+            {Array.from({ 
+              length: isMobile 
+                ? galleryImages.length 
+                : Math.ceil(galleryImages.length / 3) 
+            }).map((_, i) => (
+              <button
+                key={i}
+                className={`w-3 h-3 rounded-full transition-colors ${
+                  i === currentGalleryIndex ? 'bg-orange-400' : 'bg-gray-600 hover:bg-gray-500'
+                }`}
+                onClick={() => setCurrentGalleryIndex(i)}
+                aria-label={`View gallery page ${i + 1}`}
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -991,3 +1038,4 @@ export default function KviriaHotel() {
     </div>
   )
 }
+
