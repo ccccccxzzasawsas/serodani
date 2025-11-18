@@ -631,7 +631,7 @@ export default function KviriaHotel() {
                 <div 
                   className="relative w-full mb-0"
                   style={{ 
-                    paddingTop: `${(1365 / 5005) * 100}%` /* პროპორციის შენარჩუნება: 5005:1365 */ 
+                    paddingTop: `${(100 / 5005) * 100}%` /* პროპორციის შენარჩუნება: 5005:1365 */ 
                   }}
                 >
                   <Image
@@ -720,7 +720,6 @@ export default function KviriaHotel() {
                         className="object-cover"
                         sizes="100vw"
                         loading="lazy"
-                        unoptimized={true}
                         onError={(e) => {
                           const parent = (e.target as HTMLElement).parentElement;
                           if (parent) parent.style.display = 'none';
@@ -742,7 +741,6 @@ export default function KviriaHotel() {
                           className="object-cover"
                           sizes="(max-width: 1024px) 33vw, 400px"
                           loading="lazy"
-                          unoptimized={true}
                           onError={(e) => {
                             const parent = (e.target as HTMLElement).parentElement;
                             if (parent) parent.style.display = 'none';
