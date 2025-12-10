@@ -1,13 +1,38 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AdminManagement } from "@/components/admin-management"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Home, ImageIcon, Bed, UtensilsCrossed, Wine, ArrowRight, Users, Calendar } from "lucide-react"
+import { Home, ImageIcon, Bed, UtensilsCrossed, Wine, ArrowRight, Users, Calendar, Upload, Loader2 } from "lucide-react"
+import { syncImagesToRealtimeDatabase } from "@/lib/realtimeDb"
+import { toast } from "@/components/ui/use-toast"
 
 export default function AdminDashboardPage() {
+  const [syncingImages, setSyncingImages] = useState(false)
+
+  const handleSyncImages = async () => {
+    try {
+      setSyncingImages(true)
+      const result = await syncImagesToRealtimeDatabase()
+      
+      toast({
+        title: "წარმატება!",
+        description: `ფოტოები გადატანილია Realtime Database-ში: Gallery (${result.counts.gallery}), Slider (${result.counts.slider}), Story (${result.counts.story})`,
+      })
+    } catch (error: any) {
+      toast({
+        title: "შეცდომა",
+        description: error.message || "ფოტოების გადატანა ვერ მოხერხდა",
+        variant: "destructive"
+      })
+    } finally {
+      setSyncingImages(false)
+    }
+  }
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8">ადმინ პანელი</h1>
@@ -104,7 +129,7 @@ export default function AdminDashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center">
                   <UtensilsCrossed className="mr-2 h-5 w-5 text-amber-500" />
-                  რესტორანი
+                  რესტორან
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -143,24 +168,32 @@ export default function AdminDashboardPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center">
-                  <Users className="mr-2 h-5 w-5 text-purple-500" />
-                  ადმინისტრატორები
+                  <Upload className="mr-2 h-5 w-5 text-teal-500" />
+                  ფოტოების სინქრონიზაცია
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 mb-4">
-                  მართეთ ადმინისტრატორები და უფლებები.
+                  გადაიტანეთ ფოტოები Realtime Database-ში სწრაფი ჩატვირთვისთვის.
                 </p>
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => {
-                    const tabsTrigger = document.querySelector('[data-state="inactive"][value="admins"]') as HTMLElement
-                    if (tabsTrigger) tabsTrigger.click()
-                  }}
+                  onClick={handleSyncImages}
+                  disabled={syncingImages}
                 >
-                  მართვა
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  {syncingImages ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      მიმდინარეობს...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      სინქრონიზაცია
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>

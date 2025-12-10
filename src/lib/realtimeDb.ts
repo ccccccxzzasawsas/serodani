@@ -1,8 +1,8 @@
-import { ref, set, get, update, remove, onValue, off, push, child, query, orderByChild, equalTo } from "firebase/database";
-import { rtdb } from "./firebase";
+import { ref as rtdbRef, set, get, update, remove, onValue, off, push, child, query, orderByChild, equalTo } from "firebase/database";
+import { rtdb, storage, db } from "./firebase";
 import { Booking, Room } from "@/types";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "./firebase";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { ref, listAll, getDownloadURL } from "firebase/storage";
 
 // ჯავშნების შენახვა Realtime Database-ში
 export const saveBookingToRealtime = async (booking: Omit<Booking, 'id'>) => {
@@ -38,7 +38,7 @@ export const saveBookingToRealtime = async (booking: Omit<Booking, 'id'>) => {
     }
     
     // შევქმნათ ახალი ID
-    const newBookingRef = push(ref(rtdb, 'bookings'));
+    const newBookingRef = push(rtdbRef(rtdb, 'bookings'));
     const bookingId = newBookingRef.key;
     
     // დავამატოთ ID და შევინახოთ
@@ -77,7 +77,7 @@ export const updateBookingInRealtime = async (bookingId: string, updates: Partia
     // დავამატოთ განახლების დრო
     updatesWithDates.updatedAt = new Date().toISOString();
     
-    await update(ref(rtdb, `bookings/${bookingId}`), updatesWithDates);
+    await update(rtdbRef(rtdb, `bookings/${bookingId}`), updatesWithDates);
     return true;
   } catch (error) {
     console.error("Error updating booking in realtime database:", error);
@@ -88,7 +88,7 @@ export const updateBookingInRealtime = async (bookingId: string, updates: Partia
 // ჯავშნის წაშლა
 export const deleteBookingFromRealtime = async (bookingId: string) => {
   try {
-    await remove(ref(rtdb, `bookings/${bookingId}`));
+    await remove(rtdbRef(rtdb, `bookings/${bookingId}`));
     return true;
   } catch (error) {
     console.error("Error deleting booking from realtime database:", error);
@@ -99,7 +99,7 @@ export const deleteBookingFromRealtime = async (bookingId: string) => {
 // ერთი ჯავშნის წამოღება
 export const getBookingFromRealtime = async (bookingId: string): Promise<Booking | null> => {
   try {
-    const snapshot = await get(ref(rtdb, `bookings/${bookingId}`));
+    const snapshot = await get(rtdbRef(rtdb, `bookings/${bookingId}`));
     
     if (snapshot.exists()) {
       const data = snapshot.val();
@@ -122,7 +122,7 @@ export const getBookingFromRealtime = async (bookingId: string): Promise<Booking
 // ყველა ჯავშნის წამოღება
 export const getAllBookingsFromRealtime = async (): Promise<Booking[]> => {
   try {
-    const snapshot = await get(ref(rtdb, 'bookings'));
+    const snapshot = await get(rtdbRef(rtdb, 'bookings'));
     
     if (snapshot.exists()) {
       const bookings: Booking[] = [];
@@ -153,7 +153,7 @@ export const getAllBookingsFromRealtime = async (): Promise<Booking[]> => {
 export const getBookingsByRoomFromRealtime = async (roomId: string): Promise<Booking[]> => {
   try {
     const bookingsQuery = query(
-      ref(rtdb, 'bookings'), 
+      rtdbRef(rtdb, 'bookings'), 
       orderByChild('roomId'), 
       equalTo(roomId)
     );
@@ -186,7 +186,7 @@ export const getBookingsByRoomFromRealtime = async (roomId: string): Promise<Boo
 
 // ჯავშნების რეალურ დროში მოსმენა
 export const listenToBookings = (callback: (bookings: Booking[]) => void) => {
-  const bookingsRef = ref(rtdb, 'bookings');
+  const bookingsRef = rtdbRef(rtdb, 'bookings');
   
   const handleSnapshot = (snapshot: any) => {
     if (snapshot.exists()) {
@@ -238,7 +238,7 @@ export const listenToBookings = (callback: (bookings: Booking[]) => void) => {
 
 // კონკრეტული ჯავშნის რეალურ დროში მოსმენა
 export const listenToBooking = (bookingId: string, callback: (booking: Booking | null) => void) => {
-  const bookingRef = ref(rtdb, `bookings/${bookingId}`);
+  const bookingRef = rtdbRef(rtdb, `bookings/${bookingId}`);
   
   const handleSnapshot = (snapshot: any) => {
     if (snapshot.exists()) {
@@ -264,7 +264,7 @@ export const listenToBooking = (bookingId: string, callback: (booking: Booking |
 // ოთახის მიხედვით ჯავშნების რეალურ დროში მოსმენა
 export const listenToRoomBookings = (roomId: string, callback: (bookings: Booking[]) => void) => {
   const bookingsQuery = query(
-    ref(rtdb, 'bookings'), 
+    rtdbRef(rtdb, 'bookings'), 
     orderByChild('roomId'), 
     equalTo(roomId)
   );
@@ -338,7 +338,7 @@ export const syncUsersToRealtimeDatabase = async () => {
     });
     
     // შევინახოთ მომხმარებლები Realtime Database-ში
-    await set(ref(rtdb, 'users'), usersForRealtime);
+    await set(rtdbRef(rtdb, 'users'), usersForRealtime);
     
     console.log("Users successfully synced to Realtime Database");
     return true;
@@ -380,7 +380,7 @@ export const syncAdminsToRealtimeDatabase = async () => {
     });
     
     // შევინახოთ ადმინები Realtime Database-ში
-    await set(ref(rtdb, 'admins'), adminsForRealtime);
+    await set(rtdbRef(rtdb, 'admins'), adminsForRealtime);
     
     console.log("Admins successfully synced to Realtime Database");
     return true;
@@ -400,6 +400,125 @@ export const syncAllUsersAndAdminsToRealtimeDatabase = async () => {
     return true;
   } catch (error) {
     console.error("Error syncing users and admins to realtime database:", error);
+    throw error;
+  }
+};
+
+// ფოტოების სინქრონიზაცია Realtime Database-ში სწრაფი ჩატვირთვისთვის
+export const syncImagesToRealtimeDatabase = async () => {
+  try {
+    const imagesData: any = {
+      gallery: [],
+      slider: [],
+      hero: null,
+      story: [],
+      largePhoto: null,
+      guestReview: null,
+      syncedAt: new Date().toISOString()
+    };
+
+    // 1. Gallery სურათები Firebase Storage-დან (რეალური ფოტოები)
+    try {
+      const galleryRef = ref(storage, '/gallery');
+      const galleryResult = await listAll(galleryRef);
+      
+      const galleryUrls = await Promise.all(
+        galleryResult.items.map(async (imageRef) => {
+          try {
+            return await getDownloadURL(imageRef);
+          } catch (error) {
+            return null;
+          }
+        })
+      );
+      
+      // მხოლოდ ვალიდური URL-ები
+      const validUrls = galleryUrls.filter(url => url !== null && url !== '') as string[];
+      
+      // გადავაქციოთ ობიექტების მასივად
+      imagesData.gallery = validUrls.map((url, index) => ({
+        id: `gallery-${index}`,
+        url: url,
+        createdAt: new Date().toISOString(),
+        position: index
+      }));
+    } catch (error) {
+      console.error("Error syncing gallery images:", error);
+    }
+
+    // 2. Slider სურათები Firebase Storage-დან
+    try {
+      const sliderRef = ref(storage, '/slider');
+      const sliderResult = await listAll(sliderRef);
+      
+      const sliderUrls = await Promise.all(
+        sliderResult.items.map(async (imageRef) => {
+          try {
+            return await getDownloadURL(imageRef);
+          } catch (error) {
+            return null;
+          }
+        })
+      );
+      
+      imagesData.slider = sliderUrls.filter(url => url !== null);
+    } catch (error) {
+      console.error("Error syncing slider images:", error);
+    }
+
+    // 3. Hero სურათი
+    try {
+      const heroDoc = await getDoc(doc(db, "sections", "hero"));
+      if (heroDoc.exists() && heroDoc.data().imageUrl) {
+        imagesData.hero = heroDoc.data().imageUrl;
+      }
+    } catch (error) {
+      console.error("Error syncing hero image:", error);
+    }
+
+    // 4. Story სურათები
+    try {
+      const storyDoc = await getDoc(doc(db, "sections", "story"));
+      if (storyDoc.exists() && storyDoc.data().imageUrls) {
+        imagesData.story = storyDoc.data().imageUrls;
+      }
+    } catch (error) {
+      console.error("Error syncing story images:", error);
+    }
+
+    // 5. Large Photo
+    try {
+      const largePhotoDoc = await getDoc(doc(db, "sections", "largePhoto"));
+      if (largePhotoDoc.exists() && largePhotoDoc.data().imageUrl) {
+        imagesData.largePhoto = largePhotoDoc.data().imageUrl;
+      }
+    } catch (error) {
+      console.error("Error syncing large photo:", error);
+    }
+
+    // 6. Guest Review
+    try {
+      const guestReviewDoc = await getDoc(doc(db, "sections", "guestReview"));
+      if (guestReviewDoc.exists() && guestReviewDoc.data().imageUrl) {
+        imagesData.guestReview = guestReviewDoc.data().imageUrl;
+      }
+    } catch (error) {
+      console.error("Error syncing guest review image:", error);
+    }
+
+    // შევინახოთ Realtime Database-ში
+    await set(rtdbRef(rtdb, 'images'), imagesData);
+    
+    return {
+      success: true,
+      counts: {
+        gallery: imagesData.gallery.length,
+        slider: imagesData.slider.length,
+        story: imagesData.story.length
+      }
+    };
+  } catch (error) {
+    console.error("Error syncing images to realtime database:", error);
     throw error;
   }
 }; 

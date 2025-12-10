@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { AuthProvider, useAuth } from "@/lib/auth"
 import { AdminNav } from "@/components/admin-nav"
 import { Loader2 } from "lucide-react"
+import { Toaster } from "@/components/ui/toaster"
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -43,6 +44,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-gray-100">
       <AdminNav />
       <div className="flex-1 ml-64 p-8">{children}</div>
+      <Toaster />
     </div>
   )
 }

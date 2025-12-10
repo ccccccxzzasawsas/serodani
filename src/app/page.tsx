@@ -6,15 +6,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MapPin, Phone, Mail, ChevronLeft, ChevronRight, Star, User, Menu, X, Settings } from "lucide-react"
 import { collection, getDocs, doc, getDoc } from "firebase/firestore"
-import { db, storage } from "@/lib/firebase"
+import { db, storage, rtdb } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
-import { getStorage, ref, listAll, getDownloadURL, getMetadata } from "firebase/storage"
+import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage"
+import { ref as rtdbRef, get } from "firebase/database"
 import { Footer } from "@/components/Footer"
 
 export default function KviriaHotel() {
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0)
-  const [heroImage, setHeroImage] = useState("/home/gallery (15).jpg")
+  const [heroImage, setHeroImage] = useState("/placeholder.svg")
   const [sliderImages, setSliderImages] = useState<string[]>([])
   const [storyImages, setStoryImages] = useState<string[]>([])
   const [largePhoto, setLargePhoto] = useState("")
@@ -35,156 +36,272 @@ export default function KviriaHotel() {
           caches.keys().then(cacheNames => {
             cacheNames.forEach(cacheName => {
               caches.delete(cacheName);
-              console.log("Deleted cache:", cacheName);
             });
           });
         }
 
         // ასევე შეგვიძლია ლოკალ სტორეჯში დავინახოთ რომ ქეში გავსუფთავეთ
         localStorage.setItem("cacheCleared", new Date().toISOString());
-        console.log("Browser cache clear attempted");
       };
 
       clearImageCache();
     }
 
+    // Helper function to get download URL with retry logic for 500 errors
+    const getDownloadURLWithRetry = async (imageRef: any, maxRetries = 2): Promise<string | null> => {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          return await getDownloadURL(imageRef);
+        } catch (error: any) {
+          // Check if it's a 500 error (could be in different formats)
+          const is500Error = 
+            error?.code === 'storage/unknown' || 
+            error?.serverResponse?.status === 500 ||
+            error?.message?.includes('500') ||
+            (error?.code && error.code.includes('500'));
+          
+          // If it's a 500 error and we have retries left, wait and retry
+          if (is500Error && attempt < maxRetries) {
+            // Wait before retry (exponential backoff: 100ms, 200ms)
+            await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+            continue;
+          }
+          // For other errors or if retries exhausted, return null
+          return null;
+        }
+      }
+      return null;
+    };
+
     const fetchContent = async () => {
-      // პირველ რიგში დავაყენოთ ფოლბექი სლაიდერისთვის, რომ არ დაგვჭირდეს ლოდინი
-      setSliderImages([
-        '/slider/1.jpg',
-        '/slider/2.jpg',
-        '/slider/3.jpg',
-        '/slider/4.jpg',
-        '/slider/5.jpg',
-        '/slider/6.jpg',
-        '/slider/7.jpg',
-      ]);
+      // დავაყენოთ ცარიელი array, რომ არ იყოს 404 შეცდომები
+      setSliderImages([]);
       
       try {
-        // მთავარი ჰერო სურათის წამოღება Firebase-დან
-        const heroDoc = await getDoc(doc(db, "sections", "hero"))
-        if (heroDoc.exists() && heroDoc.data().imageUrl) {
-          setHeroImage(heroDoc.data().imageUrl)
-          console.log("Hero image loaded from Firebase:", heroDoc.data().imageUrl)
-        } else {
-          console.log("Hero image document not found or no imageUrl")
+        // ჯერ შევამოწმოთ Realtime Database-ში არის თუ არა ფოტოები (უფრო სწრაფი)
+        let imagesFromRealtime: any = null;
+        try {
+          const imagesRef = rtdbRef(rtdb, 'images');
+          const snapshot = await get(imagesRef);
+          if (snapshot.exists()) {
+            imagesFromRealtime = snapshot.val();
+          }
+        } catch (rtdbError) {
+          // Realtime Database-ში არ არის, გავაგრძელოთ Firestore-თან
         }
 
-        // სლაიდერის სურათების წამოღება Firebase Storage-დან /slider ფოლდერიდან
-        try {
-          const sliderRef = ref(storage, '/slider');
-          const sliderResult = await listAll(sliderRef);
-          
-          const sliderImagePromises = sliderResult.items.map(async (imageRef) => {
-            try {
-              const url = await getDownloadURL(imageRef);
-              return url;
-            } catch (error) {
-              console.error("Error getting slider image URL:", error);
-              return null;
+        // თუ Realtime Database-ში არის, გამოვიყენოთ ის (უფრო სწრაფი)
+        if (imagesFromRealtime && imagesFromRealtime.syncedAt) {
+          // 1. Hero Image
+          if (imagesFromRealtime.hero) {
+            setHeroImage(imagesFromRealtime.hero);
+          }
+
+          // 2. Slider Images
+          if (imagesFromRealtime.slider && imagesFromRealtime.slider.length > 0) {
+            setSliderImages(imagesFromRealtime.slider);
+          }
+
+          // 3. Story Images
+          if (imagesFromRealtime.story && imagesFromRealtime.story.length > 0) {
+            setStoryImages(imagesFromRealtime.story);
+          }
+
+          // 4. Large Photo
+          if (imagesFromRealtime.largePhoto) {
+            setLargePhoto(imagesFromRealtime.largePhoto);
+          }
+
+          // 5. Guest Review
+          if (imagesFromRealtime.guestReview) {
+            setGuestReviewImage(imagesFromRealtime.guestReview);
+          }
+
+          // 6. Gallery Images
+          if (imagesFromRealtime.gallery && imagesFromRealtime.gallery.length > 0) {
+            const galleryUrls = imagesFromRealtime.gallery.map((item: any) => item.url).filter((url: string) => url !== '');
+            if (galleryUrls.length > 0) {
+              setGalleryImages(galleryUrls);
             }
-          });
+          }
+
+          setLoading(false);
+          return; // Realtime Database-დან ჩატვირთულია, აღარ გვჭირდება Firestore
+        }
+
+        // თუ Realtime Database-ში არ არის, გავაგრძელოთ Firestore-თან (ძველი ლოგიკა)
+        // 1. პირველ რიგში - მთავარი ჰერო სურათი (ყველაზე მნიშვნელოვანი)
+        const heroDoc = await getDoc(doc(db, "sections", "hero"));
+        if (heroDoc.exists() && heroDoc.data().imageUrl) {
+          setHeroImage(heroDoc.data().imageUrl);
+        }
+
+        // 2. მეორე რიგში - სლაიდერის სურათები (მნიშვნელოვანი, მაგრამ ფოლბექი უკვე არის)
+        // დავიწყოთ დაუყოვნებლივ, როგორც კი ჰერო სურათი დაყენდება
+        const loadSliderImages = async () => {
+          try {
+            const sliderRef = ref(storage, '/slider');
+            const sliderResult = await listAll(sliderRef);
           
-          const sliderImageUrls = (await Promise.all(sliderImagePromises)).filter(url => url !== null) as string[];
-          
-          if (sliderImageUrls.length > 0) {
-            setSliderImages(sliderImageUrls);
-            console.log("Slider images loaded from Firebase Storage:", sliderImageUrls.length);
+          if (sliderResult.items.length > 0) {
+            // პირველი 7 სურათი დაუყოვნებლივ
+            const initialSliderBatch = sliderResult.items.slice(0, 7);
+            const remainingSliderItems = sliderResult.items.slice(7);
+            
+            const sliderImagePromises = initialSliderBatch.map(async (imageRef) => {
+              return await getDownloadURLWithRetry(imageRef);
+            });
+            
+            const sliderImageUrls = (await Promise.all(sliderImagePromises)).filter(url => url !== null) as string[];
+            
+            if (sliderImageUrls.length > 0) {
+              setSliderImages(sliderImageUrls);
+              
+              // დანარჩენი სლაიდერის სურათების lazy loading (ფონურად)
+              if (remainingSliderItems.length > 0) {
+                setTimeout(async () => {
+                  try {
+                    const remainingSliderUrls = await Promise.all(
+                      remainingSliderItems.map(async (imageRef) => {
+                        return await getDownloadURLWithRetry(imageRef);
+                      })
+                    );
+                    
+                    const validRemainingUrls = remainingSliderUrls.filter(url => url !== null) as string[];
+                    if (validRemainingUrls.length > 0) {
+                      setSliderImages(prev => [...prev, ...validRemainingUrls]);
+                    }
+                  } catch (error) {
+                    // Silent error handling
+                  }
+                }, 2000);
+              }
+            }
           }
         } catch (error) {
-          console.error("Error fetching slider images from Firebase Storage:", error);
-          // ფოლბეკი უკვე დაყენებულია, ამიტომ აქ არაფერი არ გვჭირდება
-        }
+            // ფოლბეკი უკვე დაყენებულია, ამიტომ აქ არაფერი არ გვჭირდება
+          }
+        };
+        
+        // დავიწყოთ სლაიდერის სურათების ჩატვირთვა დაუყოვნებლივ (არ ველოდებით სხვა ოპერაციებს)
+        loadSliderImages();
+
+        // 3. მესამე რიგში - სხვა სექციები (story, largePhoto, guestReview) - პარალელურად
+        const [storyDoc, largePhotoDoc, guestReviewDoc] = await Promise.all([
+          getDoc(doc(db, "sections", "story")),
+          getDoc(doc(db, "sections", "largePhoto")),
+          getDoc(doc(db, "sections", "guestReview"))
+        ]);
 
         // სთორის სურათების წამოღება Firebase-დან
-        const storyDoc = await getDoc(doc(db, "sections", "story"))
         if (storyDoc.exists() && storyDoc.data().imageUrls) {
-          setStoryImages(storyDoc.data().imageUrls)
-          console.log("Story images loaded from Firebase:", storyDoc.data().imageUrls)
-        } else {
-          console.log("Story document not found or no imageUrls")
+          setStoryImages(storyDoc.data().imageUrls);
         }
 
         // დიდი სურათის წამოღება Firebase-დან
-        const largePhotoDoc = await getDoc(doc(db, "sections", "largePhoto"))
         if (largePhotoDoc.exists() && largePhotoDoc.data().imageUrl) {
-          setLargePhoto(largePhotoDoc.data().imageUrl)
-          console.log("Large photo loaded from Firebase:", largePhotoDoc.data().imageUrl)
-        } else {
-          console.log("Large photo document not found or no imageUrl")
+          setLargePhoto(largePhotoDoc.data().imageUrl);
         }
 
         // გესთის რევიუს სურათის წამოღება Firebase-დან
-        const guestReviewDoc = await getDoc(doc(db, "sections", "guestReview"))
         if (guestReviewDoc.exists() && guestReviewDoc.data().imageUrl) {
-          setGuestReviewImage(guestReviewDoc.data().imageUrl)
-          console.log("Guest review image loaded from Firebase:", guestReviewDoc.data().imageUrl)
-        } else {
-          console.log("Guest review document not found or no imageUrl")
+          setGuestReviewImage(guestReviewDoc.data().imageUrl);
         }
-        
-        // გალერიის სურათების წამოღება Firebase Storage-დან /gallery ფოლდერიდან
+
+        // 4. ბოლოს - გალერიის სურათები (ყველაზე ნელი, მაგრამ ნაკლებად კრიტიკული)
         try {
-          console.log("Fetching gallery images from Firebase Storage '/gallery' folder...");
-          const galleryRef = ref(storage, '/gallery');
-          const galleryResult = await listAll(galleryRef);
+          const gallerySnapshot = await getDocs(collection(db, 'gallery'));
           
-          if (galleryResult.items.length > 0) {
-            // შევაგროვოთ ყველა ფაილის მეტადატა და URL ერთდროულად
-            const galleryImagesWithMetadata = await Promise.all(
-              galleryResult.items.map(async (imageRef) => {
-                try {
-                  const url = await getDownloadURL(imageRef);
-                  const metadata = await getMetadata(imageRef);
-                  return {
-                    url: url,
-                    timeCreated: metadata.timeCreated ? new Date(metadata.timeCreated) : new Date(),
-                    name: imageRef.name
-                  };
-                } catch (error) {
-                  console.error(`Error processing gallery image ${imageRef.name}:`, error);
-                  return null;
-                }
+          if (gallerySnapshot.docs.length > 0) {
+            // Firestore-დან მიღებული სურათები - უკვე დალაგებული და სწრაფი
+            const galleryImagesFromFirestore = gallerySnapshot.docs
+              .map(doc => {
+                const data = doc.data();
+                return {
+                  url: data.url || '',
+                  createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+                  position: data.position || 0
+                };
               })
-            );
-            
-            // გავფილტროთ null მნიშვნელობები და დავალაგოთ თარიღის მიხედვით (ახლიდან ძველისკენ)
-            const sortedGalleryImages = galleryImagesWithMetadata
-              .filter(item => item !== null)
+              .filter(item => item.url !== '')
               .sort((a, b) => {
-                if (!a || !b) return 0;
-                return b.timeCreated.getTime() - a.timeCreated.getTime();
+                // ჯერ position-ით, შემდეგ createdAt-ით
+                if (a.position !== b.position) {
+                  return a.position - b.position;
+                }
+                return b.createdAt.getTime() - a.createdAt.getTime();
               })
-              .map(item => item!.url);
+              .map(item => item.url);
             
-            if (sortedGalleryImages.length > 0) {
-              setGalleryImages(sortedGalleryImages);
-              console.log("Gallery images loaded and sorted from Firebase Storage:", sortedGalleryImages.length);
+            if (galleryImagesFromFirestore.length > 0) {
+              setGalleryImages(galleryImagesFromFirestore);
             } else {
-              console.log("No valid gallery images found in Firebase Storage, using fallback local images");
-              // ფოლბექი ლოკალური სურათებისთვის
-              const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`);
-              localGalleryImages[1] = '/2.png';
-              setGalleryImages(localGalleryImages);
+              // თუ Firestore-ში URL-ები არ არის, გადავიდეთ Storage-ზე
+              throw new Error("No URLs in Firestore, falling back to Storage");
             }
           } else {
-            console.log("No gallery images found in Firebase Storage, using fallback local images");
+            // თუ Firestore-ში არაფერია, გადავიდეთ Storage-ზე
+            throw new Error("No documents in Firestore, falling back to Storage");
+          }
+        } catch (firestoreError) {
+          // Fallback: Firebase Storage-დან, მაგრამ ოპტიმიზებული - მხოლოდ URL-ები, მეტადატის გარეშე
+          try {
+            const galleryRef = ref(storage, '/gallery');
+            const galleryResult = await listAll(galleryRef);
+            
+            if (galleryResult.items.length > 0) {
+              // ოპტიმიზაცია: მხოლოდ URL-ების მიღება, მეტადატის გარეშე (2x ნაკლები მოთხოვნა)
+              // და ბეტჩებად - პირველი 15 სურათი დაუყოვნებლივ, დანარჩენი lazy
+              const initialBatch = galleryResult.items.slice(0, 15);
+              const remainingItems = galleryResult.items.slice(15);
+              
+              // პირველი ბეტჩი - დაუყოვნებლივ
+              const initialUrls = await Promise.all(
+                initialBatch.map(async (imageRef) => {
+                  return await getDownloadURLWithRetry(imageRef);
+                })
+              );
+              
+              const validInitialUrls = initialUrls.filter(url => url !== null) as string[];
+              
+              if (validInitialUrls.length > 0) {
+                setGalleryImages(validInitialUrls);
+                
+                // დანარჩენი სურათების lazy loading - ფონურად
+                if (remainingItems.length > 0) {
+                  setTimeout(async () => {
+                    try {
+                      const remainingUrls = await Promise.all(
+                        remainingItems.map(async (imageRef) => {
+                          return await getDownloadURLWithRetry(imageRef);
+                        })
+                      );
+                      
+                      const validRemainingUrls = remainingUrls.filter(url => url !== null) as string[];
+                      if (validRemainingUrls.length > 0) {
+                        setGalleryImages(prev => [...prev, ...validRemainingUrls]);
+                      }
+                    } catch (error) {
+                      // Silent error handling
+                    }
+                  }, 1000); // 1 წამის შემდეგ დანარჩენი სურათების ჩატვირთვა
+                }
+              } else {
+                throw new Error("No valid URLs from Storage");
+              }
+            } else {
+              throw new Error("No items in Storage");
+            }
+          } catch (storageError) {
             // ფოლბექი ლოკალური სურათებისთვის
             const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`);
             localGalleryImages[1] = '/2.png';
             setGalleryImages(localGalleryImages);
           }
-        } catch (error) {
-          console.error("Error fetching gallery images from Firebase Storage:", error);
-          // ფოლბექი ლოკალური სურათებისთვის შეცდომის შემთხვევაში
-          const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`);
-          localGalleryImages[1] = '/2.png';
-          setGalleryImages(localGalleryImages);
         }
         
-        setLoading(false)
+        setLoading(false);
       } catch (error) {
-        console.error("Error fetching content:", error)
         setLoading(false)
       }
     }
@@ -206,13 +323,10 @@ export default function KviriaHotel() {
       return
     }
     
-    console.log("Starting slider animation with", sliderImages.length, "images");
-    
     // გაეშვას ცოტა დაყოვნებით, რომ DOM-ი დარენდერდეს
     const timeoutId = setTimeout(() => {
       const slider = sliderTrackRef.current;
       if (!slider || slider.children.length <= 1) {
-        console.log("Slider not ready:", slider?.children.length, "children");
         return;
       }
       
@@ -296,7 +410,7 @@ export default function KviriaHotel() {
     try {
       await signOut()
     } catch (error) {
-      console.error("Error signing out:", error)
+      // Silent error handling
     }
   }
 
@@ -327,7 +441,7 @@ export default function KviriaHotel() {
     <div className="relative min-h-screen">
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-sm text-white">
-        <div className="container mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Mobile menu button */}
             <button 
@@ -511,7 +625,7 @@ export default function KviriaHotel() {
       </section>
 
       {/* Tagline Section */}
-      <section className="py-16 bg-[#242323] text-center">
+      <section className="py-8 bg-[#242323] text-center">
         <h1 className="text-3xl md:text-4xl font-bold tracking-wide text-white">Hidden Paradise in Telavi</h1>
      
         {/* ჩატვირთვის ანიმაცია ტექსტის ქვემოთ */}
@@ -523,7 +637,7 @@ export default function KviriaHotel() {
       </section>
 
       {/* Image Gallery Preview - უსასრულო სლაიდერი */}
-      <section className="py-8 bg-[#242323]">
+      <section className="py-6 bg-[#242323]">
         <div className="w-full px-0 overflow-hidden">
           <div className="slider-container overflow-hidden w-full">
             <div ref={sliderTrackRef} className="slider-track flex">
@@ -553,24 +667,8 @@ export default function KviriaHotel() {
                       </div>
                     ))
                   ) : (
-                    // ფოლბექ იმიჯები თუ სერვერიდან არ მოვიდა
-                    ['/slider/1.jpg', '/slider/2.jpg', '/slider/3.jpg', '/slider/4.jpg', '/slider/5.jpg'].map((src, i) => (
-                      <div
-                        key={i}
-                        className="relative flex-shrink-0 h-[280px] w-[350px] overflow-hidden"
-                        style={{ marginRight: "10px" }}
-                      >
-                        <Image
-                          src={src}
-                          alt={`Best hotels in Kakheti - Serodani wooden cottages`}
-                          fill
-                          className="object-cover"
-                          sizes="350px"
-                          loading={i < 3 ? "eager" : "lazy"}
-                          unoptimized={true}
-                        />
-                      </div>
-                    ))
+                    // თუ ფოტოები არ არის, არაფერი არ გამოვაჩინოთ
+                    null
                   )}
                 </>
               )}
@@ -600,10 +698,10 @@ export default function KviriaHotel() {
       </section>
 
       {/* Our Story - Simplified with 3 photos */}
-      <section className="pt-8 pb-20 bg-[#242323]">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-8 text-white">OUR STORY</h2>
-          <div className="max-w-4xl mx-auto space-y-6 text-gray-300 leading-relaxed mb-12">
+      <section className="pt-6 pb-12 bg-[#242323]">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-6 text-white">OUR STORY</h2>
+          <div className="max-w-4xl mx-auto space-y-4 text-gray-300 leading-relaxed mb-8">
             <p>
               Located in the heart of Georgia's famous wine region, Kakheti, Hotel Serodani is a peaceful hideaway in Village Shalauri, surrounded by nature. With stunning views of the Alazani Valley and Caucasus Mountains, our eco-friendly wooden cottages offer comfort, calm, and authentic Georgian charm.
             </p>
@@ -624,7 +722,7 @@ export default function KviriaHotel() {
           </div>
 
           {/* Story Images - გაფართოებული კონტეინერი პანორამული ფოტოებისთვის */}
-          <div className="w-full overflow-hidden mb-20">
+          <div className="w-full overflow-hidden mb-12">
             <div className="w-full max-w-7xl mx-auto">
               {storyImages.length > 0 ? (
                 // მხოლოდ პირველი ფოტო გამოვაჩინოთ, თუ ის არსებობს
@@ -666,8 +764,8 @@ export default function KviriaHotel() {
             </div>
           </div>
 
-          <div className="max-w-4xl mx-auto space-y-6 text-gray-300 leading-relaxed">
-            <h2 className="text-3xl font-bold mb-8 text-center text-white">ACTIVITIES</h2>
+          <div className="max-w-4xl mx-auto space-y-4 text-gray-300 leading-relaxed">
+            <h2 className="text-3xl font-bold mb-6 text-center text-white">ACTIVITIES</h2>
             <p>
               <strong>Outdoor swimming pools</strong><br />
               Swim in our swimming pools with stunning views of the Alazani Valley and the Caucasus Mountains.
@@ -689,277 +787,127 @@ export default function KviriaHotel() {
       </section>
 
       {/* Gallery Section */}
-      <section id="gallery" className="py-20 bg-[#242323]">
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-center mb-16 text-white">GALLERY</h2>
+      <section id="gallery" className="py-12 bg-[#242323]">
+        <div className="max-w-6xl mx-auto px-4">
+          <h2 className="text-4xl font-bold text-center mb-8 text-white">GALLERY</h2>
           
-          <div className="relative max-w-5xl mx-auto flex items-center gap-4">
-            {/* Left Navigation Button - Outside first photo */}
-            <Button
-              variant="outline"
-              size="lg"
-              className="bg-orange-400 hover:bg-orange-500 text-white border-orange-400 px-6 py-3 rounded-lg shadow-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-              onClick={prevGalleryImage}
-              disabled={currentGalleryIndex === 0}
-            >
-              <ChevronLeft className="w-8 h-8" />
-            </Button>
-            
-            {/* Gallery Container */}
-            <div className="flex-1 overflow-hidden rounded-lg">
-              <div className="flex transition-transform duration-500 ease-in-out"
-                   style={{ transform: `translateX(-${currentGalleryIndex * 100}%)` }}>
-                {/* Mobile: Individual slides - one photo per slide */}
-                {galleryImages.map((src, i) => (
-                  <div key={`mobile-${i}`} className="flex-none w-full block md:hidden">
-                    <div className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
-                      <Image
-                        src={src}
-                        alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                        fill
-                        className="object-cover"
-                        sizes="100vw"
-                        loading="lazy"
-                        onError={(e) => {
-                          const parent = (e.target as HTMLElement).parentElement;
-                          if (parent) parent.style.display = 'none';
-                        }}
-                      />
+          {galleryImages.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-xl text-gray-400">გალერიის ფოტოები ჯერ არ არის ხელმისაწვდომი.</p>
+            </div>
+          ) : (
+            <>
+              {/* Gallery Container with Navigation */}
+              <div className="relative max-w-5xl mx-auto flex items-center gap-2">
+                {/* Left Arrow */}
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="bg-orange-400 hover:bg-orange-500 text-white border-orange-400 px-4 py-3 rounded-lg disabled:opacity-50"
+                  onClick={prevGalleryImage}
+                  disabled={currentGalleryIndex === 0}
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </Button>
+                
+                {/* Gallery Images */}
+                <div className="flex-1 overflow-hidden rounded-lg">
+                  {/* Mobile view */}
+                  <div className="md:hidden">
+                    <div 
+                      className="flex transition-transform duration-500 ease-in-out"
+                      style={{ transform: `translateX(-${currentGalleryIndex * 100}%)` }}
+                    >
+                      {galleryImages.map((src, i) => (
+                        <div key={i} className="flex-none w-full">
+                          <div className="relative h-[300px] rounded-lg overflow-hidden">
+                            <Image
+                              src={src}
+                              alt="Gallery"
+                              fill
+                              className="object-cover"
+                              sizes="100vw"
+                              loading="lazy"
+                            />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-
-                {/* Desktop: First slide - 3 photos */}
-                <div className="flex-none w-full hidden md:block">
-                  <div className="grid grid-cols-3 gap-6">
-                    {galleryImages.slice(0, 3).map((src, i) => (
-                      <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
-                        <Image
-                          src={src}
-                          alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 1024px) 33vw, 400px"
-                          loading="lazy"
-                          onError={(e) => {
-                            const parent = (e.target as HTMLElement).parentElement;
-                            if (parent) parent.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    ))}
+                  
+                  {/* Desktop view */}
+                  <div className="hidden md:block">
+                    <div 
+                      className="flex transition-transform duration-500 ease-in-out"
+                      style={{ transform: `translateX(-${currentGalleryIndex * 100}%)` }}
+                    >
+                      {(() => {
+                        // გამოვთვალოთ slide-ების რაოდენობა - მხოლოდ სრული slide-ები (3 ფოტო თითოეულში)
+                        const totalSlides = Math.floor(galleryImages.length / 3);
+                        return Array.from({ length: totalSlides }).map((_, slideIndex) => (
+                          <div key={slideIndex} className="flex-none w-full">
+                            <div className="grid grid-cols-3 gap-3">
+                              {galleryImages.slice(slideIndex * 3, slideIndex * 3 + 3).map((src, i) => (
+                                <div key={i} className="relative h-[300px] rounded-lg overflow-hidden">
+                                  <Image
+                                    src={src}
+                                    alt="Gallery"
+                                    fill
+                                    className="object-cover"
+                                    sizes="33vw"
+                                    loading="lazy"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
                   </div>
                 </div>
-
-                {/* Desktop: Second slide - 3 photos */}
-                {galleryImages.length > 3 && (
-                  <div className="flex-none w-full hidden md:block">
-                    <div className="grid grid-cols-3 gap-6">
-                      {galleryImages.slice(3, 6).map((src, i) => (
-                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 33vw, 400px"
-                            loading="lazy"
-                            onError={(e) => {
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Desktop: Third slide - 3 photos */}
-                {galleryImages.length > 6 && (
-                  <div className="flex-none w-full hidden md:block">
-                    <div className="grid grid-cols-3 gap-6">
-                      {galleryImages.slice(6, 9).map((src, i) => (
-                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 33vw, 400px"
-                            loading="lazy"
-                            onError={(e) => {
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Desktop: Fourth slide - 3 photos */}
-                {galleryImages.length > 9 && (
-                  <div className="flex-none w-full hidden md:block">
-                    <div className="grid grid-cols-3 gap-6">
-                      {galleryImages.slice(9, 12).map((src, i) => (
-                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 33vw, 400px"
-                            loading="lazy"
-                            onError={(e) => {
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Desktop: Fifth slide - 3 photos */}
-                {galleryImages.length > 12 && (
-                  <div className="flex-none w-full hidden md:block">
-                    <div className="grid grid-cols-3 gap-6">
-                      {galleryImages.slice(12, 15).map((src, i) => (
-                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 33vw, 400px"
-                            loading="lazy"
-                            onError={(e) => {
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Desktop: Sixth slide - 3 photos */}
-                {galleryImages.length > 15 && (
-                  <div className="flex-none w-full hidden md:block">
-                    <div className="grid grid-cols-3 gap-6">
-                      {galleryImages.slice(15, 18).map((src, i) => (
-                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 33vw, 400px"
-                            loading="lazy"
-                            onError={(e) => {
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Desktop: Seventh slide - 3 photos */}
-                {galleryImages.length > 18 && (
-                  <div className="flex-none w-full hidden md:block">
-                    <div className="grid grid-cols-3 gap-6">
-                      {galleryImages.slice(18, 21).map((src, i) => (
-                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 33vw, 400px"
-                            loading="lazy"
-                            onError={(e) => {
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Desktop: Eighth slide - remaining photos */}
-                {galleryImages.length > 21 && (
-                  <div className="flex-none w-full hidden md:block">
-                    <div className="grid grid-cols-3 gap-6">
-                      {galleryImages.slice(21).map((src, i) => (
-                        <div key={i} className="relative h-[300px] w-full rounded-lg overflow-hidden shadow-lg">
-                          <Image
-                            src={src}
-                            alt={`Cottage stay in Kakheti - Gallery of Hotel Serodani`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 33vw, 400px"
-                            loading="lazy"
-                            onError={(e) => {
-                              const parent = (e.target as HTMLElement).parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                
+                {/* Right Arrow */}
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="bg-orange-400 hover:bg-orange-500 text-white border-orange-400 px-4 py-3 rounded-lg disabled:opacity-50"
+                  onClick={nextGalleryImage}
+                  disabled={
+                    isMobile 
+                      ? currentGalleryIndex >= galleryImages.length - 1
+                      : currentGalleryIndex >= Math.floor(galleryImages.length / 3) - 1
+                  }
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </Button>
               </div>
-            </div>
-            
-            {/* Right Navigation Button - Outside last photo */}
-            <Button
-              variant="outline"
-              size="lg"
-              className="bg-orange-400 hover:bg-orange-500 text-white border-orange-400 px-6 py-3 rounded-lg shadow-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-              onClick={nextGalleryImage}
-              disabled={
-                isMobile 
-                  ? currentGalleryIndex >= galleryImages.length - 1
-                  : currentGalleryIndex >= Math.ceil(galleryImages.length / 3) - 1
-              }
-            >
-              <ChevronRight className="w-8 h-8" />
-            </Button>
-          </div>
-          
-          {/* Dots Indicator */}
-          <div className="flex justify-center mt-6 gap-2">
-            {Array.from({ 
-              length: isMobile 
-                ? galleryImages.length 
-                : Math.ceil(galleryImages.length / 3) 
-            }).map((_, i) => (
-              <button
-                key={i}
-                className={`w-3 h-3 rounded-full transition-colors ${
-                  i === currentGalleryIndex ? 'bg-orange-400' : 'bg-gray-600 hover:bg-gray-500'
-                }`}
-                onClick={() => setCurrentGalleryIndex(i)}
-                aria-label={`View gallery page ${i + 1}`}
-              />
-            ))}
-          </div>
+              
+              {/* Dots */}
+              <div className="flex justify-center mt-6 gap-2">
+                {Array.from({ 
+                  length: isMobile 
+                    ? galleryImages.length 
+                    : Math.floor(galleryImages.length / 3)
+                }).map((_, i) => (
+                  <button
+                    key={i}
+                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                      i === currentGalleryIndex ? 'bg-orange-400' : 'bg-gray-600 hover:bg-gray-500'
+                    }`}
+                    onClick={() => setCurrentGalleryIndex(i)}
+                    aria-label={`View page ${i + 1}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </section>
 
       {/* Guest Review Photo */}
-      <section className="py-20 bg-[#242323]">
-        <div className="container mx-auto px-4">
+      <section className="py-12 bg-[#242323]">
+        <div className="max-w-6xl mx-auto px-4">
           <div className="relative w-full mx-auto h-[630px] max-w-[980px]">
             <Image
               src={guestReviewImage || placeholderGuestReviewImage}
@@ -975,9 +923,9 @@ export default function KviriaHotel() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-20 bg-[#242323]">
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-center mb-16 text-white">CONTACT US</h2>
+      <section id="contact" className="py-12 bg-[#242323]">
+        <div className="max-w-6xl mx-auto px-4">
+          <h2 className="text-4xl font-bold text-center mb-8 text-white">CONTACT US</h2>
           <div className="grid lg:grid-cols-2 gap-12">
             <div>
               <h3 className="text-xl font-semibold mb-6 text-white">Address</h3>
