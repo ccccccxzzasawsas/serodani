@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,11 +15,12 @@ import { Footer } from "@/components/Footer"
 
 export default function KviriaHotel() {
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0)
-  const [heroImage, setHeroImage] = useState("/placeholder.svg")
+  const [heroImage, setHeroImage] = useState("")
   const [sliderImages, setSliderImages] = useState<string[]>([])
   const [storyImages, setStoryImages] = useState<string[]>([])
   const [largePhoto, setLargePhoto] = useState("")
   const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [galleryFailedUrls, setGalleryFailedUrls] = useState<Set<string>>(new Set())
   const [guestReviewImage, setGuestReviewImage] = useState("")
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -117,9 +118,13 @@ export default function KviriaHotel() {
             setGuestReviewImage(imagesFromRealtime.guestReview);
           }
 
-          // 6. Gallery Images
-          if (imagesFromRealtime.gallery && imagesFromRealtime.gallery.length > 0) {
-            const galleryUrls = imagesFromRealtime.gallery.map((item: any) => item.url).filter((url: string) => url !== '');
+          // 6. Gallery Images — Realtime DB ინახავს მასივს ობიექტად (0,1,2...), ნორმალიზაცია + მხოლოდ ვალიდური URL-ები
+          const rawGallery = imagesFromRealtime.gallery;
+          if (rawGallery && typeof rawGallery === 'object') {
+            const galleryArray = Array.isArray(rawGallery) ? rawGallery : Object.values(rawGallery);
+            const galleryUrls = galleryArray
+              .map((item: any) => (item && item.url) || '')
+              .filter((url: string) => typeof url === 'string' && url.trim() !== '' && !url.includes('placeholder'));
             if (galleryUrls.length > 0) {
               setGalleryImages(galleryUrls);
             }
@@ -231,7 +236,8 @@ export default function KviriaHotel() {
                 }
                 return b.createdAt.getTime() - a.createdAt.getTime();
               })
-              .map(item => item.url);
+              .map(item => item.url)
+              .filter((url: string) => typeof url === 'string' && url.trim() !== '' && !url.includes('placeholder'));
             
             if (galleryImagesFromFirestore.length > 0) {
               setGalleryImages(galleryImagesFromFirestore);
@@ -262,7 +268,8 @@ export default function KviriaHotel() {
                 })
               );
               
-              const validInitialUrls = initialUrls.filter(url => url !== null) as string[];
+              const validInitialUrls = (initialUrls.filter(url => url !== null) as string[])
+                .filter((url: string) => typeof url === 'string' && url.trim() !== '' && !url.includes('placeholder'));
               
               if (validInitialUrls.length > 0) {
                 setGalleryImages(validInitialUrls);
@@ -277,7 +284,8 @@ export default function KviriaHotel() {
                         })
                       );
                       
-                      const validRemainingUrls = remainingUrls.filter(url => url !== null) as string[];
+                      const validRemainingUrls = (remainingUrls.filter(url => url !== null) as string[])
+                        .filter((url: string) => typeof url === 'string' && url.trim() !== '' && !url.includes('placeholder'));
                       if (validRemainingUrls.length > 0) {
                         setGalleryImages(prev => [...prev, ...validRemainingUrls]);
                       }
@@ -376,6 +384,21 @@ export default function KviriaHotel() {
 
   const [isMobile, setIsMobile] = useState(false)
 
+  // მთავარი ფოტოს პრელოდი — ბრაუზერი ქეშირებს, ჩატვირთვა უფრო სწრაფია
+  useEffect(() => {
+    if (!heroImage || heroImage.includes("placeholder")) return
+    const link = document.createElement("link")
+    link.rel = "preload"
+    link.as = "image"
+    link.href = heroImage
+    document.head.appendChild(link)
+    return () => {
+      try {
+        document.head.removeChild(link)
+      } catch (_) {}
+    }
+  }, [heroImage])
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
@@ -385,21 +408,30 @@ export default function KviriaHotel() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Reset gallery index when switching between mobile/desktop
+  // მხოლოდ ვალიდური სურათები + ლიმიტი მთავარ გვერდზე — რათა წერტილები არ იყოს ძალიან ბევრი
+  const MAX_GALLERY_ON_HOME = 16 // მაქს 4 სლაიდი დესკტოპზე, 12 მობილურზე — წერტილები არ იყოს ზედმეტი
+  const displayGalleryImages = useMemo(
+    () => galleryImages
+      .filter((url) => !galleryFailedUrls.has(url))
+      .slice(0, MAX_GALLERY_ON_HOME),
+    [galleryImages, galleryFailedUrls]
+  )
+
+  // Reset gallery index when switching between mobile/desktop or when display count changes
   useEffect(() => {
-    const imagesCount = galleryImages.length > 0 ? galleryImages.length : placeholderGalleryImages.length
-    const maxSlides = isMobile ? imagesCount : Math.ceil(imagesCount / 3)
+    const n = displayGalleryImages.length
+    if (n === 0) return
+    const maxSlides = isMobile ? n : Math.ceil(n / 3)
     if (currentGalleryIndex >= maxSlides) {
       setCurrentGalleryIndex(Math.max(0, maxSlides - 1))
     }
-  }, [isMobile, galleryImages.length])
+  }, [isMobile, displayGalleryImages.length, currentGalleryIndex])
 
   const nextGalleryImage = () => {
-    setCurrentGalleryIndex((prev) => {
-      const imagesCount = galleryImages.length > 0 ? galleryImages.length : placeholderGalleryImages.length
-      const maxSlides = isMobile ? imagesCount : Math.ceil(imagesCount / 3)
-      return prev < maxSlides - 1 ? prev + 1 : prev
-    })
+    const n = displayGalleryImages.length
+    if (n === 0) return
+    const maxSlides = isMobile ? n : Math.ceil(n / 3)
+    setCurrentGalleryIndex((prev) => (prev < maxSlides - 1 ? prev + 1 : prev))
   }
 
   const prevGalleryImage = () => {
@@ -593,18 +625,22 @@ export default function KviriaHotel() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative w-full bg-black aspect-[3/4] md:aspect-video">
-        <div className="absolute inset-0">
-          <Image 
-            src={heroImage} 
-            alt="Hotel in Kakheti - Serodani Boutique Wooden Cottages" 
-            width={1200} 
-            height={800} 
-            priority 
-            unoptimized
-            className="w-full h-full object-cover"
-          />
+      {/* Hero Section — პლეისჰოლდერი არ ჩანს; სურათი მხოლოდ როცა URL ჩატვირთულია, ქეშირება/პრიორიტეტი */}
+      <section className="relative w-full bg-black aspect-[3/4] md:aspect-video md:max-h-[75vh]">
+        <div className="absolute inset-0 bg-black">
+          {heroImage && !heroImage.includes("placeholder") && (
+            <Image
+              src={heroImage}
+              alt=""
+              width={1200}
+              height={800}
+              priority
+              fetchPriority="high"
+              unoptimized
+              className="w-full h-full object-cover"
+              sizes="100vw"
+            />
+          )}
         </div>
         <div className="relative z-10 flex flex-col justify-center items-center h-full">
           <div className="text-center text-white px-4">
@@ -636,42 +672,29 @@ export default function KviriaHotel() {
         )}
       </section>
 
-      {/* Image Gallery Preview - უსასრულო სლაიდერი */}
+      {/* Image Gallery Preview - უსასრულო სლაიდერი; ცარიელი სექცია არ ჩანს */}
+      {!loading && sliderImages.length > 0 && (
       <section className="py-6 bg-[#242323]">
         <div className="w-full px-0 overflow-hidden">
           <div className="slider-container overflow-hidden w-full">
             <div ref={sliderTrackRef} className="slider-track flex">
-              {loading ? (
-                <div className="hidden">
-                  {/* ჩატვირთვის ანიმაცია გადატანილია ზევით */}
+              {[...sliderImages, ...sliderImages].map((src, i) => (
+                <div
+                  key={i}
+                  className="relative flex-shrink-0 h-[280px] w-[350px] overflow-hidden"
+                  style={{ marginRight: "10px" }}
+                >
+                  <Image
+                    src={src}
+                    alt={`Boutique hotel in Kakheti - Wooden cottages in Georgia`}
+                    fill
+                    className="object-cover"
+                    sizes="350px"
+                    loading={i < 6 ? "eager" : "lazy"}
+                    unoptimized={true}
+                  />
                 </div>
-              ) : (
-                <>
-                  {sliderImages.length > 0 ? (
-                    // ყველა სურათი ორჯერ, რომ უსასრულოდ მოძრაობდეს
-                    [...sliderImages, ...sliderImages].map((src, i) => (
-                      <div
-                        key={i}
-                        className="relative flex-shrink-0 h-[280px] w-[350px] overflow-hidden"
-                        style={{ marginRight: "10px" }}
-                      >
-                        <Image
-                          src={src}
-                          alt={`Boutique hotel in Kakheti - Wooden cottages in Georgia`}
-                          fill
-                          className="object-cover"
-                          sizes="350px"
-                          loading={i < 6 ? "eager" : "lazy"}
-                          unoptimized={true}
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    // თუ ფოტოები არ არის, არაფერი არ გამოვაჩინოთ
-                    null
-                  )}
-                </>
-              )}
+              ))}
             </div>
           </div>
 
@@ -696,6 +719,7 @@ export default function KviriaHotel() {
           `}</style>
         </div>
       </section>
+      )}
 
       {/* Our Story - Simplified with 3 photos */}
       <section className="pt-6 pb-12 bg-[#242323]">
@@ -791,15 +815,14 @@ export default function KviriaHotel() {
         <div className="max-w-6xl mx-auto px-4">
           <h2 className="text-4xl font-bold text-center mb-8 text-white">GALLERY</h2>
           
-          {galleryImages.length === 0 ? (
+          {displayGalleryImages.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-xl text-gray-400">გალერიის ფოტოები ჯერ არ არის ხელმისაწვდომი.</p>
             </div>
           ) : (
             <>
-              {/* Gallery Container with Navigation */}
+              {/* Gallery Container with Navigation — წერტილები და სლაიდები მხოლოდ displayGalleryImages-ის მიხედვით */}
               <div className="relative max-w-5xl mx-auto flex items-center gap-2">
-                {/* Left Arrow */}
                 <Button
                   variant="outline"
                   size="lg"
@@ -810,15 +833,13 @@ export default function KviriaHotel() {
                   <ChevronLeft className="w-6 h-6" />
                 </Button>
                 
-                {/* Gallery Images */}
                 <div className="flex-1 overflow-hidden rounded-lg">
-                  {/* Mobile view */}
                   <div className="md:hidden">
                     <div 
                       className="flex transition-transform duration-500 ease-in-out"
                       style={{ transform: `translateX(-${currentGalleryIndex * 100}%)` }}
                     >
-                      {galleryImages.map((src, i) => (
+                      {displayGalleryImages.map((src, i) => (
                         <div key={i} className="flex-none w-full">
                           <div className="relative h-[300px] rounded-lg overflow-hidden">
                             <Image
@@ -828,6 +849,7 @@ export default function KviriaHotel() {
                               className="object-cover"
                               sizes="100vw"
                               loading="lazy"
+                              onError={() => setGalleryFailedUrls((prev) => new Set(prev).add(src))}
                             />
                           </div>
                         </div>
@@ -835,63 +857,57 @@ export default function KviriaHotel() {
                     </div>
                   </div>
                   
-                  {/* Desktop view */}
                   <div className="hidden md:block">
                     <div 
                       className="flex transition-transform duration-500 ease-in-out"
                       style={{ transform: `translateX(-${currentGalleryIndex * 100}%)` }}
                     >
-                      {(() => {
-                        // გამოვთვალოთ slide-ების რაოდენობა - მხოლოდ სრული slide-ები (3 ფოტო თითოეულში)
-                        const totalSlides = Math.floor(galleryImages.length / 3);
-                        return Array.from({ length: totalSlides }).map((_, slideIndex) => (
-                          <div key={slideIndex} className="flex-none w-full">
-                            <div className="grid grid-cols-3 gap-3">
-                              {galleryImages.slice(slideIndex * 3, slideIndex * 3 + 3).map((src, i) => (
-                                <div key={i} className="relative h-[300px] rounded-lg overflow-hidden">
-                                  <Image
-                                    src={src}
-                                    alt="Gallery"
-                                    fill
-                                    className="object-cover"
-                                    sizes="33vw"
-                                    loading="lazy"
-                                  />
-                                </div>
-                              ))}
-                            </div>
+                      {Array.from({ length: Math.ceil(displayGalleryImages.length / 3) || 1 }).map((_, slideIndex) => (
+                        <div key={slideIndex} className="flex-none w-full">
+                          <div className="grid grid-cols-3 gap-3">
+                            {displayGalleryImages.slice(slideIndex * 3, slideIndex * 3 + 3).map((src, i) => (
+                              <div key={`${slideIndex}-${i}`} className="relative h-[300px] rounded-lg overflow-hidden">
+                                <Image
+                                  src={src}
+                                  alt="Gallery"
+                                  fill
+                                  className="object-cover"
+                                  sizes="33vw"
+                                  loading="lazy"
+                                  onError={() => setGalleryFailedUrls((prev) => new Set(prev).add(src))}
+                                />
+                              </div>
+                            ))}
                           </div>
-                        ));
-                      })()}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
                 
-                {/* Right Arrow */}
                 <Button
                   variant="outline"
                   size="lg"
                   className="bg-orange-400 hover:bg-orange-500 text-white border-orange-400 px-4 py-3 rounded-lg disabled:opacity-50"
                   onClick={nextGalleryImage}
                   disabled={
-                    isMobile 
-                      ? currentGalleryIndex >= galleryImages.length - 1
-                      : currentGalleryIndex >= Math.floor(galleryImages.length / 3) - 1
+                    isMobile
+                      ? currentGalleryIndex >= displayGalleryImages.length - 1
+                      : currentGalleryIndex >= Math.ceil(displayGalleryImages.length / 3) - 1
                   }
                 >
                   <ChevronRight className="w-6 h-6" />
                 </Button>
               </div>
               
-              {/* Dots */}
-              <div className="flex justify-center mt-6 gap-2">
-                {Array.from({ 
-                  length: isMobile 
-                    ? galleryImages.length 
-                    : Math.floor(galleryImages.length / 3)
+              {/* წერტილები — მხოლოდ იმდენი, რამდენი სლაიდიც არსებობს */}
+              <div className="flex justify-center mt-6 gap-2 flex-wrap">
+                {Array.from({
+                  length: isMobile ? displayGalleryImages.length : Math.ceil(displayGalleryImages.length / 3) || 1,
                 }).map((_, i) => (
                   <button
                     key={i}
+                    type="button"
                     className={`w-2.5 h-2.5 rounded-full transition-colors ${
                       i === currentGalleryIndex ? 'bg-orange-400' : 'bg-gray-600 hover:bg-gray-500'
                     }`}
@@ -905,10 +921,10 @@ export default function KviriaHotel() {
         </div>
       </section>
 
-      {/* Guest Review Photo */}
-      <section className="py-12 bg-[#242323]">
+      {/* Guest Review Photo — რესპონსიული სიმაღლე, ცარიელი ბლოკის შემცირება */}
+      <section className="py-8 md:py-12 bg-[#242323]">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="relative w-full mx-auto h-[630px] max-w-[980px]">
+          <div className="relative w-full mx-auto h-[280px] sm:h-[360px] md:h-[420px] lg:h-[500px] xl:h-[560px] max-w-[980px]">
             <Image
               src={guestReviewImage || placeholderGuestReviewImage}
               alt="Wine hotel Georgia - Guest reviews of Hotel Serodani in Kakheti"
