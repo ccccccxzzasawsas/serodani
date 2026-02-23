@@ -23,12 +23,12 @@ export default function RootLayout({
         />
         <link 
           rel="icon" 
-          href="https://hotelserodani.com/faction.jpg" 
-          type="image/jpeg"
+          href="/serodani-logo.svg" 
+          type="image/svg+xml"
         />
         <link 
           rel="apple-touch-icon" 
-          href="https://hotelserodani.com/faction.jpg"
+          href="/serodani-logo.svg"
         />
         <meta name="keywords" content="Hotel in Kakheti, Best Hotels in Kakheti, Kakheti boutique hotel, Nature hotel in Georgia, Cottage stay Kakheti, Wooden cottages in Georgia, Cottage in Kakheti, Georgian countryside hotel, Wine hotel Georgia, Hotels in Telavi, Where to stay in Kakheti, Relaxing weekend getaway from Tbilisi, სასტუმროები კახეთში, კოტეჯები კახეთში, საუკეთესო სასტუმრო კახეთში, სასტუმრო კახეთში აუზით, Sastumro kaxetshi, Koteji kaxetshi, Sastumro kaxetshi auzit, Sauketeso sastumroebi kaxetshi" />
       </head>
