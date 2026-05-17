@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { 
-  STATIC_PAGE_REVALIDATE_TIME, 
   DYNAMIC_DATA_REVALIDATE_TIME 
 } from './lib/cache-config';
+
+const PUBLIC_PAGE_CACHE_CONTROL = 'public, max-age=0, s-maxage=300, stale-while-revalidate=60';
 
 /**
  * მიდლვეარი, რომელიც ამატებს ქეშირების ჰედერებს სხვადასხვა გვერდებისთვის
@@ -17,7 +18,7 @@ export function middleware(request: NextRequest) {
       url.startsWith('/fine-dining') || url.startsWith('/wines')) {
     
     // სტატიკური გვერდებისთვის უფრო ხანგრძლივი ქეშირება
-    response.headers.set('Cache-Control', `public, max-age=${STATIC_PAGE_REVALIDATE_TIME}, s-maxage=${STATIC_PAGE_REVALIDATE_TIME}, stale-while-revalidate`);
+    response.headers.set('Cache-Control', PUBLIC_PAGE_CACHE_CONTROL);
   } else if (url.startsWith('/api/') && !url.includes('/revalidate')) {
     // API ენდპოინტებისთვის უფრო მოკლე ქეშირება, გარდა revalidate ენდპოინტისა
     response.headers.set('Cache-Control', `public, max-age=${DYNAMIC_DATA_REVALIDATE_TIME}, s-maxage=${DYNAMIC_DATA_REVALIDATE_TIME}, stale-while-revalidate`);
