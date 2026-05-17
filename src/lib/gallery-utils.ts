@@ -1,5 +1,6 @@
-import { ref, uploadBytes, getDownloadURL, listAll } from "firebase/storage"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "./firebase"
+import { getLocalStorageImages } from "./local-images"
 
 export interface GalleryImage {
   id: string
@@ -16,21 +17,14 @@ export async function uploadImageToFirebase(file: File, path: string): Promise<s
 }
 
 export async function getGalleryImages(path = "gallery"): Promise<GalleryImage[]> {
-  const storageRef = ref(storage, path)
-  const result = await listAll(storageRef)
-
-  const images: GalleryImage[] = await Promise.all(
-    result.items.map(async (item) => {
-      const url = await getDownloadURL(item)
-      return {
-        id: item.name,
-        url,
-        name: item.name,
-      }
-    }),
-  )
-
-  return images
+  return getLocalStorageImages(path).map((url) => {
+    const name = url.split("/").pop() || url
+    return {
+      id: name,
+      url,
+      name,
+    }
+  })
 }
 
 export function getImageDimensions(url: string): Promise<{ width: number; height: number }> {

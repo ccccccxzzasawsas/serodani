@@ -1,6 +1,5 @@
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, query, where, orderBy, limit } from 'firebase/firestore';
-import { ref, getDownloadURL, listAll } from 'firebase/storage';
 import { 
   STATIC_PAGE_REVALIDATE_TIME, 
   DYNAMIC_DATA_REVALIDATE_TIME, 
@@ -10,6 +9,7 @@ import {
   CACHE_TAGS
 } from './cache-config';
 import type { Room } from '@/types';
+import { getLocalStorageImages, toLocalImageUrl } from './local-images';
 
 // Wine ტიპის განსაზღვრა
 export interface Wine {
@@ -21,6 +21,33 @@ export interface Wine {
   createdAt: Date | string;
 }
 
+function localizeRoomImages(data: any): { imageUrl: string; images: Room["images"] } {
+  const images = Array.isArray(data.images)
+    ? data.images.map((image: any, index: number) => ({
+        ...image,
+        url: toLocalImageUrl(image?.url || image?.imageUrl || ''),
+        position: image?.position ?? index,
+      }))
+    : [];
+
+  const imageUrl = toLocalImageUrl(data.imageUrl || images[0]?.url || '');
+
+  return {
+    imageUrl,
+    images: images.length > 0 ? images : imageUrl ? [{ url: imageUrl, position: 0 }] : [],
+  };
+}
+
+function localizeSectionImages(data: any) {
+  if (!data) return data;
+
+  return {
+    ...data,
+    imageUrl: toLocalImageUrl(data.imageUrl || ''),
+    imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls.map((url: string) => toLocalImageUrl(url)) : data.imageUrls,
+  };
+}
+
 /**
  * ოთახების მონაცემების მიღება ქეშირებით
  */
@@ -30,9 +57,11 @@ export async function fetchRooms(): Promise<Room[]> {
     const roomsSnapshot = await getDocs(collection(db, 'rooms'));
     const rooms = roomsSnapshot.docs.map(doc => {
       const data = doc.data() as any;
+      const localizedImages = localizeRoomImages(data);
       return {
         id: doc.id,
         ...data,
+        ...localizedImages,
         name: data.name || '',
         description: data.description || '',
         price: data.price || 0,
@@ -62,9 +91,11 @@ export async function fetchRoom(roomId: string) {
     }
 
     const data = roomDoc.data();
+    const localizedImages = localizeRoomImages(data);
     return {
       id: roomDoc.id,
       ...data,
+      ...localizedImages,
       name: data.name || '',
       description: data.description || '',
       price: data.price || 0,
@@ -92,7 +123,7 @@ export async function fetchWines(): Promise<Wine[]> {
         ...data,
         name: data.name || '',
         description: data.description || '',
-        url: data.url || '',
+        url: toLocalImageUrl(data.url || ''),
         position: data.position || 0,
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
       } as Wine;
@@ -111,30 +142,13 @@ export async function fetchWines(): Promise<Wine[]> {
  */
 export async function fetchWineImagesSimple(): Promise<string[]> {
   try {
-    console.log("Fetching wine images directly from Firebase Storage...");
-    const winesRef = ref(storage, '/wines');
-    const wineResult = await listAll(winesRef);
+    return getLocalStorageImages('wines');
     
     // პირდაპირ წამოვიღოთ ყველა ფაილის URL
-    const urls = await Promise.all(
-      wineResult.items.map(async (imageRef) => {
-        try {
-          const url = await getDownloadURL(imageRef);
-          return url;
-        } catch (error) {
-          console.error(`Error getting download URL for ${imageRef.name}:`, error);
-          return null;
-        }
-      })
-    );
     
     // ვფილტრავთ null-ებს
-    const validUrls = urls.filter(url => url !== null) as string[];
-    console.log(`Successfully fetched ${validUrls.length} wine images directly from Firebase Storage`);
-    
-    return validUrls;
   } catch (error) {
-    console.error('Error fetching wine images directly:', error);
+    console.error('Error fetching local wine images:', error);
     return [];
   }
 }
@@ -150,7 +164,7 @@ export async function fetchGalleryImages() {
       return {
         id: doc.id,
         ...data,
-        url: data.url || '',
+        url: toLocalImageUrl(data.url || ''),
         title: data.title || '',
         position: data.position || 0,
       };
@@ -174,7 +188,7 @@ export async function fetchDiningInfo() {
       return null;
     }
 
-    return diningDoc.data();
+    return localizeSectionImages(diningDoc.data());
   } catch (error) {
     console.error('Error fetching dining info:', error);
     return null;
@@ -218,7 +232,7 @@ export async function fetchHomeSectionImages() {
           if (docSnap.exists()) {
             return {
               section: sectionName,
-              data: docSnap.data()
+              data: localizeSectionImages(docSnap.data())
             };
           }
           return {

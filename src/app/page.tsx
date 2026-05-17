@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MapPin, Phone, Mail, ChevronLeft, ChevronRight, Star, User, Menu, X, Settings } from "lucide-react"
 import { collection, getDocs, doc, getDoc } from "firebase/firestore"
-import { db, storage, rtdb } from "@/lib/firebase"
+import { db, rtdb } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
-import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage"
 import { ref as rtdbRef, get } from "firebase/database"
 import { Footer } from "@/components/Footer"
+import { getLocalStorageImages, toLocalImageUrl, toLocalImageUrls } from "@/lib/local-images"
 
 export default function KviriaHotel() {
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0)
@@ -48,32 +48,6 @@ export default function KviriaHotel() {
       clearImageCache();
     }
 
-    // Helper function to get download URL with retry logic for 500 errors
-    const getDownloadURLWithRetry = async (imageRef: any, maxRetries = 2): Promise<string | null> => {
-      for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-          return await getDownloadURL(imageRef);
-        } catch (error: any) {
-          // Check if it's a 500 error (could be in different formats)
-          const is500Error = 
-            error?.code === 'storage/unknown' || 
-            error?.serverResponse?.status === 500 ||
-            error?.message?.includes('500') ||
-            (error?.code && error.code.includes('500'));
-          
-          // If it's a 500 error and we have retries left, wait and retry
-          if (is500Error && attempt < maxRetries) {
-            // Wait before retry (exponential backoff: 100ms, 200ms)
-            await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
-            continue;
-          }
-          // For other errors or if retries exhausted, return null
-          return null;
-        }
-      }
-      return null;
-    };
-
     const fetchContent = async () => {
       // დავაყენოთ ცარიელი array, რომ არ იყოს 404 შეცდომები
       setSliderImages([]);
@@ -95,27 +69,27 @@ export default function KviriaHotel() {
         if (imagesFromRealtime && imagesFromRealtime.syncedAt) {
           // 1. Hero Image
           if (imagesFromRealtime.hero) {
-            setHeroImage(imagesFromRealtime.hero);
+            setHeroImage(toLocalImageUrl(imagesFromRealtime.hero));
           }
 
           // 2. Slider Images
           if (imagesFromRealtime.slider && imagesFromRealtime.slider.length > 0) {
-            setSliderImages(imagesFromRealtime.slider);
+            setSliderImages(toLocalImageUrls(imagesFromRealtime.slider));
           }
 
           // 3. Story Images
           if (imagesFromRealtime.story && imagesFromRealtime.story.length > 0) {
-            setStoryImages(imagesFromRealtime.story);
+            setStoryImages(toLocalImageUrls(imagesFromRealtime.story));
           }
 
           // 4. Large Photo
           if (imagesFromRealtime.largePhoto) {
-            setLargePhoto(imagesFromRealtime.largePhoto);
+            setLargePhoto(toLocalImageUrl(imagesFromRealtime.largePhoto));
           }
 
           // 5. Guest Review
           if (imagesFromRealtime.guestReview) {
-            setGuestReviewImage(imagesFromRealtime.guestReview);
+            setGuestReviewImage(toLocalImageUrl(imagesFromRealtime.guestReview));
           }
 
           // 6. Gallery Images — Realtime DB ინახავს მასივს ობიექტად (0,1,2...), ნორმალიზაცია + მხოლოდ ვალიდური URL-ები
@@ -124,6 +98,7 @@ export default function KviriaHotel() {
             const galleryArray = Array.isArray(rawGallery) ? rawGallery : Object.values(rawGallery);
             const galleryUrls = galleryArray
               .map((item: any) => (item && item.url) || '')
+              .map((url: string) => toLocalImageUrl(url))
               .filter((url: string) => typeof url === 'string' && url.trim() !== '' && !url.includes('placeholder'));
             if (galleryUrls.length > 0) {
               setGalleryImages(galleryUrls);
@@ -138,56 +113,17 @@ export default function KviriaHotel() {
         // 1. პირველ რიგში - მთავარი ჰერო სურათი (ყველაზე მნიშვნელოვანი)
         const heroDoc = await getDoc(doc(db, "sections", "hero"));
         if (heroDoc.exists() && heroDoc.data().imageUrl) {
-          setHeroImage(heroDoc.data().imageUrl);
+          setHeroImage(toLocalImageUrl(heroDoc.data().imageUrl));
         }
 
         // 2. მეორე რიგში - სლაიდერის სურათები (მნიშვნელოვანი, მაგრამ ფოლბექი უკვე არის)
         // დავიწყოთ დაუყოვნებლივ, როგორც კი ჰერო სურათი დაყენდება
         const loadSliderImages = async () => {
-          try {
-            const sliderRef = ref(storage, '/slider');
-            const sliderResult = await listAll(sliderRef);
-          
-          if (sliderResult.items.length > 0) {
-            // პირველი 7 სურათი დაუყოვნებლივ
-            const initialSliderBatch = sliderResult.items.slice(0, 7);
-            const remainingSliderItems = sliderResult.items.slice(7);
-            
-            const sliderImagePromises = initialSliderBatch.map(async (imageRef) => {
-              return await getDownloadURLWithRetry(imageRef);
-            });
-            
-            const sliderImageUrls = (await Promise.all(sliderImagePromises)).filter(url => url !== null) as string[];
-            
-            if (sliderImageUrls.length > 0) {
-              setSliderImages(sliderImageUrls);
-              
-              // დანარჩენი სლაიდერის სურათების lazy loading (ფონურად)
-              if (remainingSliderItems.length > 0) {
-                setTimeout(async () => {
-                  try {
-                    const remainingSliderUrls = await Promise.all(
-                      remainingSliderItems.map(async (imageRef) => {
-                        return await getDownloadURLWithRetry(imageRef);
-                      })
-                    );
-                    
-                    const validRemainingUrls = remainingSliderUrls.filter(url => url !== null) as string[];
-                    if (validRemainingUrls.length > 0) {
-                      setSliderImages(prev => [...prev, ...validRemainingUrls]);
-                    }
-                  } catch (error) {
-                    // Silent error handling
-                  }
-                }, 2000);
-              }
-            }
-          }
-        } catch (error) {
-            // ფოლბეკი უკვე დაყენებულია, ამიტომ აქ არაფერი არ გვჭირდება
+          const sliderImageUrls = getLocalStorageImages('slider');
+          if (sliderImageUrls.length > 0) {
+            setSliderImages(sliderImageUrls);
           }
         };
-        
         // დავიწყოთ სლაიდერის სურათების ჩატვირთვა დაუყოვნებლივ (არ ველოდებით სხვა ოპერაციებს)
         loadSliderImages();
 
@@ -200,17 +136,17 @@ export default function KviriaHotel() {
 
         // სთორის სურათების წამოღება Firebase-დან
         if (storyDoc.exists() && storyDoc.data().imageUrls) {
-          setStoryImages(storyDoc.data().imageUrls);
+          setStoryImages(toLocalImageUrls(storyDoc.data().imageUrls));
         }
 
         // დიდი სურათის წამოღება Firebase-დან
         if (largePhotoDoc.exists() && largePhotoDoc.data().imageUrl) {
-          setLargePhoto(largePhotoDoc.data().imageUrl);
+          setLargePhoto(toLocalImageUrl(largePhotoDoc.data().imageUrl));
         }
 
         // გესთის რევიუს სურათის წამოღება Firebase-დან
         if (guestReviewDoc.exists() && guestReviewDoc.data().imageUrl) {
-          setGuestReviewImage(guestReviewDoc.data().imageUrl);
+          setGuestReviewImage(toLocalImageUrl(guestReviewDoc.data().imageUrl));
         }
 
         // 4. ბოლოს - გალერიის სურათები (ყველაზე ნელი, მაგრამ ნაკლებად კრიტიკული)
@@ -236,7 +172,7 @@ export default function KviriaHotel() {
                 }
                 return b.createdAt.getTime() - a.createdAt.getTime();
               })
-              .map(item => item.url)
+              .map(item => toLocalImageUrl(item.url))
               .filter((url: string) => typeof url === 'string' && url.trim() !== '' && !url.includes('placeholder'));
             
             if (galleryImagesFromFirestore.length > 0) {
@@ -250,62 +186,8 @@ export default function KviriaHotel() {
             throw new Error("No documents in Firestore, falling back to Storage");
           }
         } catch (firestoreError) {
-          // Fallback: Firebase Storage-დან, მაგრამ ოპტიმიზებული - მხოლოდ URL-ები, მეტადატის გარეშე
-          try {
-            const galleryRef = ref(storage, '/gallery');
-            const galleryResult = await listAll(galleryRef);
-            
-            if (galleryResult.items.length > 0) {
-              // ოპტიმიზაცია: მხოლოდ URL-ების მიღება, მეტადატის გარეშე (2x ნაკლები მოთხოვნა)
-              // და ბეტჩებად - პირველი 15 სურათი დაუყოვნებლივ, დანარჩენი lazy
-              const initialBatch = galleryResult.items.slice(0, 15);
-              const remainingItems = galleryResult.items.slice(15);
-              
-              // პირველი ბეტჩი - დაუყოვნებლივ
-              const initialUrls = await Promise.all(
-                initialBatch.map(async (imageRef) => {
-                  return await getDownloadURLWithRetry(imageRef);
-                })
-              );
-              
-              const validInitialUrls = (initialUrls.filter(url => url !== null) as string[])
-                .filter((url: string) => typeof url === 'string' && url.trim() !== '' && !url.includes('placeholder'));
-              
-              if (validInitialUrls.length > 0) {
-                setGalleryImages(validInitialUrls);
-                
-                // დანარჩენი სურათების lazy loading - ფონურად
-                if (remainingItems.length > 0) {
-                  setTimeout(async () => {
-                    try {
-                      const remainingUrls = await Promise.all(
-                        remainingItems.map(async (imageRef) => {
-                          return await getDownloadURLWithRetry(imageRef);
-                        })
-                      );
-                      
-                      const validRemainingUrls = (remainingUrls.filter(url => url !== null) as string[])
-                        .filter((url: string) => typeof url === 'string' && url.trim() !== '' && !url.includes('placeholder'));
-                      if (validRemainingUrls.length > 0) {
-                        setGalleryImages(prev => [...prev, ...validRemainingUrls]);
-                      }
-                    } catch (error) {
-                      // Silent error handling
-                    }
-                  }, 1000); // 1 წამის შემდეგ დანარჩენი სურათების ჩატვირთვა
-                }
-              } else {
-                throw new Error("No valid URLs from Storage");
-              }
-            } else {
-              throw new Error("No items in Storage");
-            }
-          } catch (storageError) {
-            // ფოლბექი ლოკალური სურათებისთვის
-            const localGalleryImages = Array.from({ length: 23 }, (_, i) => `/${i + 1}.jpg`);
-            localGalleryImages[1] = '/2.png';
-            setGalleryImages(localGalleryImages);
-          }
+          const localGalleryImages = getLocalStorageImages('gallery');
+          setGalleryImages(localGalleryImages);
         }
         
         setLoading(false);
@@ -1000,4 +882,3 @@ export default function KviriaHotel() {
     </div>
   )
 }
-

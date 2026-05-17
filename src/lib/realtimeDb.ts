@@ -1,8 +1,8 @@
 import { ref as rtdbRef, set, get, update, remove, onValue, off, push, child, query, orderByChild, equalTo } from "firebase/database";
-import { rtdb, storage, db } from "./firebase";
+import { rtdb, db } from "./firebase";
 import { Booking, Room } from "@/types";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
-import { ref, listAll, getDownloadURL } from "firebase/storage";
+import { getLocalStorageImages, toLocalImageUrl, toLocalImageUrls } from "./local-images";
 
 // ჯავშნების შენახვა Realtime Database-ში
 export const saveBookingToRealtime = async (booking: Omit<Booking, 'id'>) => {
@@ -417,60 +417,21 @@ export const syncImagesToRealtimeDatabase = async () => {
       syncedAt: new Date().toISOString()
     };
 
-    // 1. Gallery სურათები Firebase Storage-დან (რეალური ფოტოები)
-    try {
-      const galleryRef = ref(storage, '/gallery');
-      const galleryResult = await listAll(galleryRef);
-      
-      const galleryUrls = await Promise.all(
-        galleryResult.items.map(async (imageRef) => {
-          try {
-            return await getDownloadURL(imageRef);
-          } catch (error) {
-            return null;
-          }
-        })
-      );
-      
-      // მხოლოდ ვალიდური URL-ები
-      const validUrls = galleryUrls.filter(url => url !== null && url !== '') as string[];
-      
-      // გადავაქციოთ ობიექტების მასივად
-      imagesData.gallery = validUrls.map((url, index) => ({
-        id: `gallery-${index}`,
-        url: url,
-        createdAt: new Date().toISOString(),
-        position: index
-      }));
-    } catch (error) {
-      console.error("Error syncing gallery images:", error);
-    }
+    const galleryUrls = getLocalStorageImages('gallery', { sort: 'createdDesc' });
+    imagesData.gallery = galleryUrls.map((url, index) => ({
+      id: `gallery-${index}`,
+      url,
+      createdAt: new Date().toISOString(),
+      position: index
+    }));
 
-    // 2. Slider სურათები Firebase Storage-დან
-    try {
-      const sliderRef = ref(storage, '/slider');
-      const sliderResult = await listAll(sliderRef);
-      
-      const sliderUrls = await Promise.all(
-        sliderResult.items.map(async (imageRef) => {
-          try {
-            return await getDownloadURL(imageRef);
-          } catch (error) {
-            return null;
-          }
-        })
-      );
-      
-      imagesData.slider = sliderUrls.filter(url => url !== null);
-    } catch (error) {
-      console.error("Error syncing slider images:", error);
-    }
+    imagesData.slider = getLocalStorageImages('slider');
 
     // 3. Hero სურათი
     try {
       const heroDoc = await getDoc(doc(db, "sections", "hero"));
       if (heroDoc.exists() && heroDoc.data().imageUrl) {
-        imagesData.hero = heroDoc.data().imageUrl;
+        imagesData.hero = toLocalImageUrl(heroDoc.data().imageUrl);
       }
     } catch (error) {
       console.error("Error syncing hero image:", error);
@@ -480,7 +441,7 @@ export const syncImagesToRealtimeDatabase = async () => {
     try {
       const storyDoc = await getDoc(doc(db, "sections", "story"));
       if (storyDoc.exists() && storyDoc.data().imageUrls) {
-        imagesData.story = storyDoc.data().imageUrls;
+        imagesData.story = toLocalImageUrls(storyDoc.data().imageUrls);
       }
     } catch (error) {
       console.error("Error syncing story images:", error);
@@ -490,7 +451,7 @@ export const syncImagesToRealtimeDatabase = async () => {
     try {
       const largePhotoDoc = await getDoc(doc(db, "sections", "largePhoto"));
       if (largePhotoDoc.exists() && largePhotoDoc.data().imageUrl) {
-        imagesData.largePhoto = largePhotoDoc.data().imageUrl;
+        imagesData.largePhoto = toLocalImageUrl(largePhotoDoc.data().imageUrl);
       }
     } catch (error) {
       console.error("Error syncing large photo:", error);
@@ -500,7 +461,7 @@ export const syncImagesToRealtimeDatabase = async () => {
     try {
       const guestReviewDoc = await getDoc(doc(db, "sections", "guestReview"));
       if (guestReviewDoc.exists() && guestReviewDoc.data().imageUrl) {
-        imagesData.guestReview = guestReviewDoc.data().imageUrl;
+        imagesData.guestReview = toLocalImageUrl(guestReviewDoc.data().imageUrl);
       }
     } catch (error) {
       console.error("Error syncing guest review image:", error);

@@ -7,10 +7,10 @@ import { User, MapPin, Menu, X } from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
 import { getDoc, doc } from "firebase/firestore"
-import { db, storage } from "@/lib/firebase"
+import { db } from "@/lib/firebase"
 import { Footer } from "@/components/Footer"
-import { getDownloadURL, ref } from "firebase/storage"
 import { fetchWineImagesSimple } from "@/lib/data-fetching"
+import { toLocalImageUrl } from "@/lib/local-images"
 
 export default function WinesPage() {
   const { user, signOut } = useAuth()
@@ -25,23 +25,9 @@ export default function WinesPage() {
         // ჰერო სურათის წამოღება Firebase-დან
         const heroDoc = await getDoc(doc(db, "sections", "wineHero"))
         if (heroDoc.exists() && heroDoc.data().imageUrl) {
-          try {
-            const heroUrl = heroDoc.data().imageUrl;
-            
-            // თუ URL იწყება https:// ფორმატით, პირდაპირ გამოვიყენოთ
-            if (heroUrl.startsWith('https://')) {
-              setHeroImage(heroUrl);
-            } else {
-              // თუ ეს არის Firebase Storage path, გადავაკონვერტიროთ URL-ად
-              const storageRef = ref(storage, heroUrl);
-              const downloadUrl = await getDownloadURL(storageRef);
-              setHeroImage(downloadUrl);
-            }
-            
-            console.log("Wine hero loaded from Firebase");
-          } catch (error) {
-            console.error("Error loading hero image:", error);
-          }
+          const heroUrl = toLocalImageUrl(heroDoc.data().imageUrl);
+          setHeroImage(heroUrl);
+          console.log("Wine hero loaded from Firebase");
         } else {
           console.log("Wine hero not found in Firebase");
         }

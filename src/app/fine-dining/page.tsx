@@ -8,8 +8,8 @@ import { User, X, ChevronLeft, ChevronRight, Menu } from "lucide-react"
 import Link from "next/link"
 import { Footer } from "@/components/Footer"
 import { collection, getDoc, doc, getDocs } from "firebase/firestore"
-import { db, storage } from "@/lib/firebase"
-import { getDownloadURL, ref } from "firebase/storage"
+import { db } from "@/lib/firebase"
+import { toLocalImageUrl } from "@/lib/local-images"
 
 export default function FineDiningPage() {
   const { user, signOut } = useAuth()
@@ -31,31 +31,7 @@ export default function FineDiningPage() {
   
   // ფუნქცია Firebase Storage URL-ის გასაწმენდად და დასაკონვერტირებლად
   const getProperImageUrl = async (url: string): Promise<string | null> => {
-    // ვამოწმებთ Firebase Storage-ის URL-ს
-    if (url.startsWith('gs://') || url.includes('firebasestorage.googleapis.com')) {
-      try {
-        // თუ URL იწყება gs:// ფორმატით ან შეიცავს firebasestorage, გადავაკონვერტიროთ https:// ფორმატში
-        console.log("Converting Firebase Storage URL:", url);
-        
-        // თუ URL უკვე არის https:// ფორმატში, მაგრამ შეიცავს firebasestorage.googleapis.com
-        if (url.startsWith('http')) {
-          return url; // პირდაპირ დავაბრუნოთ ეს URL
-        }
-        
-        // თუ URL არის gs:// ფორმატში, გადავაკონვერტიროთ https:// ფორმატში
-        const storageRef = ref(storage, url);
-        const httpsUrl = await getDownloadURL(storageRef);
-        console.log("Converted URL:", httpsUrl);
-        return httpsUrl;
-      } catch (error) {
-        // თუ შეცდომა მოხდა, არ გამოვიტანოთ საჯაროდ
-        return null; // შეცდომის შემთხვევაში დავაბრუნოთ null
-      }
-    }
-    
-    // CORS პრობლემების გამო აღარ ვამოწმებთ URL-ის ვალიდურობას fetch მეთოდით
-    // უბრალოდ ვაბრუნებთ URL-ს და სურათის კომპონენტი თავად დაიჭერს შეცდომას
-    return url;
+    return toLocalImageUrl(url);
   };
 
   useEffect(() => {

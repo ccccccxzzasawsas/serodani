@@ -4,7 +4,7 @@
 // Configuration for cache duration and image optimization
 export const imageConfig = {
   // Default image domains that need optimization
-  domains: ['firebasestorage.googleapis.com'],
+  domains: [],
   
   // Set caching behavior - გავზარდოთ ქეშირების დრო
   minimumCacheTTL: 60 * 60 * 24 * 30, // 30 დღე
@@ -39,18 +39,7 @@ export const setupImagePreconnect = () => {
   if (typeof document !== 'undefined') {
     const head = document.head;
     
-    // Add preconnect for Firebase Storage
-    const firebasePreconnect = document.createElement('link');
-    firebasePreconnect.rel = 'preconnect';
-    firebasePreconnect.href = 'https://firebasestorage.googleapis.com';
-    firebasePreconnect.crossOrigin = 'anonymous';
-    head.appendChild(firebasePreconnect);
-    
-    // Add DNS prefetch as fallback
-    const firebaseDnsPrefetch = document.createElement('link');
-    firebaseDnsPrefetch.rel = 'dns-prefetch';
-    firebaseDnsPrefetch.href = 'https://firebasestorage.googleapis.com';
-    head.appendChild(firebaseDnsPrefetch);
+    // Images are served from the local public directory.
   }
 };
 

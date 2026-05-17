@@ -13,15 +13,6 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link 
-          rel="preconnect" 
-          href="https://firebasestorage.googleapis.com" 
-          crossOrigin="anonymous"
-        />
-        <link 
-          rel="dns-prefetch" 
-          href="https://firebasestorage.googleapis.com"
-        />
-        <link 
           rel="icon" 
           href="/serodani-logo.svg" 
           type="image/svg+xml"

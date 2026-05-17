@@ -7,9 +7,9 @@ import { useAuth } from "@/lib/auth"
 import { User, X, Menu } from "lucide-react"
 import Link from "next/link"
 import { collection, getDoc, doc, getDocs } from "firebase/firestore"
-import { db, storage } from "@/lib/firebase"
+import { db } from "@/lib/firebase"
 import { Footer } from "@/components/Footer"
-import { getDownloadURL, ref, listAll, getMetadata } from "firebase/storage"
+import { getLocalStorageImages, toLocalImageUrl } from "@/lib/local-images"
 
 export default function GalleryPage() {
   const { user, signOut } = useAuth()
@@ -46,62 +46,14 @@ export default function GalleryPage() {
         // ჰერო სურათის წამოღება Firebase-დან
         const heroDoc = await getDoc(doc(db, "sections", "galleryHero"))
         if (heroDoc.exists() && heroDoc.data().imageUrl) {
-          const heroUrl = heroDoc.data().imageUrl;
+          const heroUrl = toLocalImageUrl(heroDoc.data().imageUrl);
           setHeroImage(heroUrl);
           console.log("Gallery hero loaded from Firebase:", heroUrl)
         } else {
           console.log("Gallery hero not found in Firebase")
         }
         
-        // გალერიის სურათების წამოღება Firebase Storage-დან /gallery ფოლდერიდან
-        try {
-          console.log("Fetching gallery images from Firebase Storage '/gallery' folder...");
-          const galleryRef = ref(storage, '/gallery');
-          const galleryResult = await listAll(galleryRef);
-          
-          if (galleryResult.items.length > 0) {
-            // შევაგროვოთ ყველა ფაილის მეტადატა და URL ერთდროულად
-            const galleryImagesWithMetadata = await Promise.all(
-              galleryResult.items.map(async (imageRef) => {
-                try {
-                  const url = await getDownloadURL(imageRef);
-                  const metadata = await getMetadata(imageRef);
-                  return {
-                    url: url,
-                    timeCreated: metadata.timeCreated ? new Date(metadata.timeCreated) : new Date(),
-                    name: imageRef.name
-                  };
-                } catch (error) {
-                  console.error(`Error processing gallery image ${imageRef.name}:`, error);
-                  return null;
-                }
-              })
-            );
-            
-            // გავფილტროთ null მნიშვნელობები და დავალაგოთ თარიღის მიხედვით (ახლიდან ძველისკენ)
-            const sortedGalleryImages = galleryImagesWithMetadata
-              .filter(item => item !== null)
-              .sort((a, b) => {
-                if (!a || !b) return 0;
-                return b.timeCreated.getTime() - a.timeCreated.getTime();
-              })
-              .map(item => item!.url);
-            
-            if (sortedGalleryImages.length > 0) {
-              setGalleryImages(sortedGalleryImages);
-              console.log("Gallery images loaded and sorted from Firebase Storage:", sortedGalleryImages.length);
-            } else {
-              console.log("No valid gallery images found in Firebase Storage");
-              setGalleryImages([]);
-            }
-          } else {
-            console.log("No gallery images found in Firebase Storage");
-            setGalleryImages([]);
-          }
-        } catch (error) {
-          console.error("Error fetching gallery images from Firebase Storage:", error);
-          setGalleryImages([]);
-        }
+        setGalleryImages(getLocalStorageImages('gallery', { sort: 'createdDesc' }));
       } catch (error) {
         console.error("Error fetching gallery content:", error)
         setGalleryImages([]); // ცარიელი მასივი შეცდომის შემთხვევაში

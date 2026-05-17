@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/carousel"
 import { BookingButton } from "@/components/booking-button"
 import { fetchRooms } from "@/lib/data-fetching"
+import { toLocalImageUrl } from "@/lib/local-images"
 
 export default function RoomsPage() {
   const { user, signOut } = useAuth()
@@ -51,7 +52,7 @@ export default function RoomsPage() {
       const docRef = doc(db, "sections", "roomsHero")
       const docSnap = await getDoc(docRef)
       if (docSnap.exists() && docSnap.data().imageUrl) {
-        setHeroImageUrl(docSnap.data().imageUrl)
+        setHeroImageUrl(toLocalImageUrl(docSnap.data().imageUrl))
       }
     } catch (error) {
       console.error("Error fetching hero image:", error)

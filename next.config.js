@@ -2,16 +2,10 @@
 const nextConfig = {
   /* config options here */
   images: {
-    domains: ["firebasestorage.googleapis.com"],
+    domains: [],
     deviceSizes: [640, 1080, 1920],
     imageSizes: [32, 96, 256],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
-        pathname: '/v0/b/serodani-b031d.firebasestorage.app/o/**',
-      },
-    ],
+    remotePatterns: [],
     formats: ['image/webp'],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 დღე
     unoptimized: true,
