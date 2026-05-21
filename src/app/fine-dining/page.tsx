@@ -3,16 +3,12 @@
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/lib/auth"
-import { User, X, ChevronLeft, ChevronRight, Menu } from "lucide-react"
+import { X, ChevronLeft, ChevronRight, Menu } from "lucide-react"
 import Link from "next/link"
 import { Footer } from "@/components/Footer"
-import { collection, getDoc, doc, getDocs } from "firebase/firestore"
-import { db } from "@/lib/firebase"
-import { toLocalImageUrl } from "@/lib/local-images"
+import { getLocalStorageImages } from "@/lib/local-images"
 
 export default function FineDiningPage() {
-  const { user, signOut } = useAuth()
   const [loading, setLoading] = useState(true)
   const [heroImage, setHeroImage] = useState<string | null>(null)
   const [diningImages, setDiningImages] = useState<string[]>([])
@@ -28,12 +24,6 @@ export default function FineDiningPage() {
   const sliderTrackRef = useRef<HTMLDivElement>(null)
   const animationRef = useRef<number | null>(null)
   const imageContainerRef = useRef<HTMLDivElement>(null)
-  
-  // ფუნქცია Firebase Storage URL-ის გასაწმენდად და დასაკონვერტირებლად
-  const getProperImageUrl = async (url: string): Promise<string | null> => {
-    return toLocalImageUrl(url);
-  };
-
   useEffect(() => {
     // გავასუფთავოთ ბრაუზერის ქეში სურათებიდან
     if (typeof window !== 'undefined') {

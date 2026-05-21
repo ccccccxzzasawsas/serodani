@@ -3,11 +3,8 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Search, Menu, X, User } from "lucide-react"
-import { useAuth } from "@/lib/auth"
+import { Search, Menu, X } from "lucide-react"
 import Link from "next/link"
-import { collection, getDocs, doc, getDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import type { Room } from "@/types"
 import { Footer } from "@/components/Footer"
 import {
@@ -27,13 +24,12 @@ import {
 } from "@/components/ui/carousel"
 import { BookingButton } from "@/components/booking-button"
 import { fetchRooms } from "@/lib/data-fetching"
-import { toLocalImageUrl } from "@/lib/local-images"
+import { getLocalStorageImages } from "@/lib/local-images"
 
 export default function RoomsPage() {
-  const { user, signOut } = useAuth()
   const [allRooms, setAllRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
-  const [heroImageUrl, setHeroImageUrl] = useState<string>("/room/hero.jpg")
+  const [heroImageUrl, setHeroImageUrl] = useState<string>("")
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const [selectedRoomForImage, setSelectedRoomForImage] = useState<Room | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -44,55 +40,20 @@ export default function RoomsPage() {
 
   useEffect(() => {
     fetchAllRooms()
-    fetchHeroImage()
+    setHeroImageUrl(getLocalStorageImages("roomsHero", { sort: "updatedDesc" })[0] || "/placeholder.svg?height=800&width=1200")
   }, [])
-
-  const fetchHeroImage = async () => {
-    try {
-      const docRef = doc(db, "sections", "roomsHero")
-      const docSnap = await getDoc(docRef)
-      if (docSnap.exists() && docSnap.data().imageUrl) {
-        setHeroImageUrl(toLocalImageUrl(docSnap.data().imageUrl))
-      }
-    } catch (error) {
-      console.error("Error fetching hero image:", error)
-    }
-  }
 
   const fetchAllRooms = async () => {
     try {
       setLoading(true)
       const roomsList = await fetchRooms()
       
-      // Log detailed room info before sorting
-      console.log("Unsorted rooms:", roomsList.map(room => ({
-        id: room.id,
-        name: room.name,
-        position: room.position || 0
-      })));
-      
       const sortedRooms = roomsList.sort((a, b) => (a.position || 0) - (b.position || 0))
-      
-      // Add debug log to see rooms and their names
-      console.log("Sorted rooms:", sortedRooms.map(room => ({
-        id: room.id,
-        name: room.name,
-        position: room.position || 0
-      })));
-      
       setAllRooms(sortedRooms)
     } catch (error) {
       console.error("Error fetching rooms:", error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-    } catch (error) {
-      console.error("Error signing out:", error)
     }
   }
 
@@ -150,30 +111,6 @@ export default function RoomsPage() {
                 <Link href="/booking?checkInDate=28.07.2025&checkOutDate=29.07.2025">Book Now</Link>
               </Button>
 
-              {user ? (
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <User className="w-4 h-4" />
-                    <span className="hidden sm:inline">{user.displayName || user.email}</span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleSignOut} 
-                    className="text-orange-400 hover:text-orange-300"
-                  >
-                    <span className="hidden sm:inline">Sign Out</span>
-                    <X className="sm:hidden w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Link href="/admin/login">
-                  <Button variant="ghost" size="sm" className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10">
-                    <User className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Login</span>
-                  </Button>
-                </Link>
-              )}
             </div>
           </div>
 

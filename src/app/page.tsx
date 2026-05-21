@@ -1,219 +1,43 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { MapPin, Phone, Mail, ChevronLeft, ChevronRight, Star, User, Menu, X, Settings } from "lucide-react"
-import { collection, getDocs, doc, getDoc } from "firebase/firestore"
-import { db, rtdb } from "@/lib/firebase"
-import { useAuth } from "@/lib/auth"
+import { MapPin, Phone, Mail, ChevronLeft, ChevronRight, Menu, X } from "lucide-react"
 import Link from "next/link"
-import { ref as rtdbRef, get } from "firebase/database"
 import { Footer } from "@/components/Footer"
-import { getLocalStorageImages, toLocalImageUrl, toLocalImageUrls } from "@/lib/local-images"
+import { getLocalStorageImages } from "@/lib/local-images"
 
 export default function KviriaHotel() {
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0)
   const [heroImage, setHeroImage] = useState("")
   const [sliderImages, setSliderImages] = useState<string[]>([])
   const [storyImages, setStoryImages] = useState<string[]>([])
-  const [largePhoto, setLargePhoto] = useState("")
   const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [galleryFailedUrls, setGalleryFailedUrls] = useState<Set<string>>(new Set())
   const [guestReviewImage, setGuestReviewImage] = useState("")
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, signOut, isAdmin } = useAuth()
   const sliderTrackRef = useRef<HTMLDivElement>(null)
   const animationRef = useRef<number | null>(null)
 
   useEffect(() => {
-    // გავასუფთავოთ ბრაუზერის ქეში სურათებიდან
-    if (typeof window !== 'undefined') {
-      // ლოკალური სურათების ქეშის წასაშლელი ფუნქცია
-      const clearImageCache = () => {
-        if ('caches' in window) {
-          caches.keys().then(cacheNames => {
-            cacheNames.forEach(cacheName => {
-              caches.delete(cacheName);
-            });
-          });
-        }
+    setHeroImage(getLocalStorageImages("hero", { sort: "updatedDesc" })[0] || "")
+    setSliderImages(getLocalStorageImages("slider", { sort: "createdAsc" }))
+    setStoryImages(getLocalStorageImages("story", { sort: "createdAsc" }))
+    setGalleryImages(getLocalStorageImages("gallery", { sort: "createdDesc" }))
+    setGuestReviewImage(getLocalStorageImages("guestReview", { sort: "updatedDesc" })[0] || "")
+    setLoading(false)
 
-        // ასევე შეგვიძლია ლოკალ სტორეჯში დავინახოთ რომ ქეში გავსუფთავეთ
-        localStorage.setItem("cacheCleared", new Date().toISOString());
-      };
-
-      clearImageCache();
-    }
-
-    const fetchContent = async () => {
-      // დავაყენოთ ცარიელი array, რომ არ იყოს 404 შეცდომები
-      setSliderImages([]);
-      
-      try {
-        // ჯერ შევამოწმოთ Realtime Database-ში არის თუ არა ფოტოები (უფრო სწრაფი)
-        let imagesFromRealtime: any = null;
-        try {
-          const imagesRef = rtdbRef(rtdb, 'images');
-          const snapshot = await get(imagesRef);
-          if (snapshot.exists()) {
-            imagesFromRealtime = snapshot.val();
-          }
-        } catch (rtdbError) {
-          // Realtime Database-ში არ არის, გავაგრძელოთ Firestore-თან
-        }
-
-        // თუ Realtime Database-ში არის, გამოვიყენოთ ის (უფრო სწრაფი)
-        if (imagesFromRealtime && imagesFromRealtime.syncedAt) {
-          // 1. Hero Image
-          if (imagesFromRealtime.hero) {
-            setHeroImage(toLocalImageUrl(imagesFromRealtime.hero));
-          }
-
-          // 2. Slider Images
-          if (imagesFromRealtime.slider && imagesFromRealtime.slider.length > 0) {
-            setSliderImages(toLocalImageUrls(imagesFromRealtime.slider));
-          }
-
-          // 3. Story Images
-          if (imagesFromRealtime.story && imagesFromRealtime.story.length > 0) {
-            setStoryImages(toLocalImageUrls(imagesFromRealtime.story));
-          }
-
-          // 4. Large Photo
-          if (imagesFromRealtime.largePhoto) {
-            setLargePhoto(toLocalImageUrl(imagesFromRealtime.largePhoto));
-          }
-
-          // 5. Guest Review
-          if (imagesFromRealtime.guestReview) {
-            setGuestReviewImage(toLocalImageUrl(imagesFromRealtime.guestReview));
-          }
-
-          // 6. Gallery Images — Realtime DB ინახავს მასივს ობიექტად (0,1,2...), ნორმალიზაცია + მხოლოდ ვალიდური URL-ები
-          const rawGallery = imagesFromRealtime.gallery;
-          if (rawGallery && typeof rawGallery === 'object') {
-            const galleryArray = Array.isArray(rawGallery) ? rawGallery : Object.values(rawGallery);
-            const galleryUrls = galleryArray
-              .map((item: any) => (item && item.url) || '')
-              .map((url: string) => toLocalImageUrl(url))
-              .filter((url: string) => typeof url === 'string' && url.trim() !== '' && !url.includes('placeholder'));
-            if (galleryUrls.length > 0) {
-              setGalleryImages(galleryUrls);
-            }
-          }
-
-          setLoading(false);
-          return; // Realtime Database-დან ჩატვირთულია, აღარ გვჭირდება Firestore
-        }
-
-        // თუ Realtime Database-ში არ არის, გავაგრძელოთ Firestore-თან (ძველი ლოგიკა)
-        // 1. პირველ რიგში - მთავარი ჰერო სურათი (ყველაზე მნიშვნელოვანი)
-        const heroDoc = await getDoc(doc(db, "sections", "hero"));
-        if (heroDoc.exists() && heroDoc.data().imageUrl) {
-          setHeroImage(toLocalImageUrl(heroDoc.data().imageUrl));
-        }
-
-        // 2. მეორე რიგში - სლაიდერის სურათები (მნიშვნელოვანი, მაგრამ ფოლბექი უკვე არის)
-        // დავიწყოთ დაუყოვნებლივ, როგორც კი ჰერო სურათი დაყენდება
-        const loadSliderImages = async () => {
-          const sliderImageUrls = getLocalStorageImages('slider');
-          if (sliderImageUrls.length > 0) {
-            setSliderImages(sliderImageUrls);
-          }
-        };
-        // დავიწყოთ სლაიდერის სურათების ჩატვირთვა დაუყოვნებლივ (არ ველოდებით სხვა ოპერაციებს)
-        loadSliderImages();
-
-        // 3. მესამე რიგში - სხვა სექციები (story, largePhoto, guestReview) - პარალელურად
-        const [storyDoc, largePhotoDoc, guestReviewDoc] = await Promise.all([
-          getDoc(doc(db, "sections", "story")),
-          getDoc(doc(db, "sections", "largePhoto")),
-          getDoc(doc(db, "sections", "guestReview"))
-        ]);
-
-        // სთორის სურათების წამოღება Firebase-დან
-        if (storyDoc.exists() && storyDoc.data().imageUrls) {
-          setStoryImages(toLocalImageUrls(storyDoc.data().imageUrls));
-        }
-
-        // დიდი სურათის წამოღება Firebase-დან
-        if (largePhotoDoc.exists() && largePhotoDoc.data().imageUrl) {
-          setLargePhoto(toLocalImageUrl(largePhotoDoc.data().imageUrl));
-        }
-
-        // გესთის რევიუს სურათის წამოღება Firebase-დან
-        if (guestReviewDoc.exists() && guestReviewDoc.data().imageUrl) {
-          setGuestReviewImage(toLocalImageUrl(guestReviewDoc.data().imageUrl));
-        }
-
-        // 4. ბოლოს - გალერიის სურათები (ყველაზე ნელი, მაგრამ ნაკლებად კრიტიკული)
-        try {
-          const gallerySnapshot = await getDocs(collection(db, 'gallery'));
-          
-          if (gallerySnapshot.docs.length > 0) {
-            // Firestore-დან მიღებული სურათები - უკვე დალაგებული და სწრაფი
-            const galleryImagesFromFirestore = gallerySnapshot.docs
-              .map(doc => {
-                const data = doc.data();
-                return {
-                  url: data.url || '',
-                  createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-                  position: data.position || 0
-                };
-              })
-              .filter(item => item.url !== '')
-              .sort((a, b) => {
-                // ჯერ position-ით, შემდეგ createdAt-ით
-                if (a.position !== b.position) {
-                  return a.position - b.position;
-                }
-                return b.createdAt.getTime() - a.createdAt.getTime();
-              })
-              .map(item => toLocalImageUrl(item.url))
-              .filter((url: string) => typeof url === 'string' && url.trim() !== '' && !url.includes('placeholder'));
-            
-            if (galleryImagesFromFirestore.length > 0) {
-              setGalleryImages(galleryImagesFromFirestore);
-            } else {
-              // თუ Firestore-ში URL-ები არ არის, გადავიდეთ Storage-ზე
-              throw new Error("No URLs in Firestore, falling back to Storage");
-            }
-          } else {
-            // თუ Firestore-ში არაფერია, გადავიდეთ Storage-ზე
-            throw new Error("No documents in Firestore, falling back to Storage");
-          }
-        } catch (firestoreError) {
-          const localGalleryImages = getLocalStorageImages('gallery');
-          setGalleryImages(localGalleryImages);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        setLoading(false)
-      }
-    }
-
-    fetchContent()
-    
     return () => {
-      // წავშალოთ ანიმაცია, თუ კომპონენტი ანმაუნთდება
       if (animationRef.current !== null) {
         cancelAnimationFrame(animationRef.current)
       }
     }
   }, [])
-  
-  // ცალკე useEffect სლაიდერის ანიმაციისთვის, რომელიც გაეშვება ფოტოების ჩატვირთვის შემდეგ
+
   useEffect(() => {
-    // ანიმაციის დაწყება მხოლოდ მაშინ, როცა ფოტოები ჩატვირთულია და sliderImages არ არის ცარიელი
-    if (sliderImages.length === 0) {
-      return
-    }
-    
-    // გაეშვას ცოტა დაყოვნებით, რომ DOM-ი დარენდერდეს
+    // áƒ’áƒáƒ”áƒ¨áƒ•áƒáƒ¡ áƒªáƒáƒ¢áƒ áƒ“áƒáƒ§áƒáƒ•áƒœáƒ”áƒ‘áƒ˜áƒ—, áƒ áƒáƒ› DOM-áƒ˜ áƒ“áƒáƒ áƒ”áƒœáƒ“áƒ”áƒ áƒ“áƒ”áƒ¡
     const timeoutId = setTimeout(() => {
       const slider = sliderTrackRef.current;
       if (!slider || slider.children.length <= 1) {
@@ -221,29 +45,29 @@ export default function KviriaHotel() {
       }
       
       let position = 0;
-      const speed = 0.5; // სიჩქარე პიქსელებში
+      const speed = 0.5; // áƒ¡áƒ˜áƒ©áƒ¥áƒáƒ áƒ” áƒžáƒ˜áƒ¥áƒ¡áƒ”áƒšáƒ”áƒ‘áƒ¨áƒ˜
       
-      // მარტივი ანიმაციის ფუნქცია
+      // áƒ›áƒáƒ áƒ¢áƒ˜áƒ•áƒ˜ áƒáƒœáƒ˜áƒ›áƒáƒªáƒ˜áƒ˜áƒ¡ áƒ¤áƒ£áƒœáƒ¥áƒªáƒ˜áƒ
       const animate = () => {
         position += speed;
         
-        // როცა პირველი სურათი სრულად გავა ეკრანიდან, გადაიტანე ბოლოში უხილავად
+        // áƒ áƒáƒªáƒ áƒžáƒ˜áƒ áƒ•áƒ”áƒšáƒ˜ áƒ¡áƒ£áƒ áƒáƒ—áƒ˜ áƒ¡áƒ áƒ£áƒšáƒáƒ“ áƒ’áƒáƒ•áƒ áƒ”áƒ™áƒ áƒáƒœáƒ˜áƒ“áƒáƒœ, áƒ’áƒáƒ“áƒáƒ˜áƒ¢áƒáƒœáƒ” áƒ‘áƒáƒšáƒáƒ¨áƒ˜ áƒ£áƒ®áƒ˜áƒšáƒáƒ•áƒáƒ“
         const firstChild = slider.children[0] as HTMLElement;
-        if (!firstChild) return; // დავრწმუნდეთ რომ firstChild არსებობს
+        if (!firstChild) return; // áƒ“áƒáƒ•áƒ áƒ¬áƒ›áƒ£áƒœáƒ“áƒ”áƒ— áƒ áƒáƒ› firstChild áƒáƒ áƒ¡áƒ”áƒ‘áƒáƒ‘áƒ¡
         
-        const itemWidth = firstChild.offsetWidth + 10; // +10 მარჯინისთვის
+        const itemWidth = firstChild.offsetWidth + 10; // +10 áƒ›áƒáƒ áƒ¯áƒ˜áƒœáƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡
         
         if (position >= itemWidth) {
-          // დავმალოთ გადატანის ანიმაცია - გადავიყვანოთ პოზიცია 0-ზე, გადავიტანოთ ელემენტი და შემდეგ ისევ დავაბრუნოთ CSS ტრანზიშენი
+          // áƒ“áƒáƒ•áƒ›áƒáƒšáƒáƒ— áƒ’áƒáƒ“áƒáƒ¢áƒáƒœáƒ˜áƒ¡ áƒáƒœáƒ˜áƒ›áƒáƒªáƒ˜áƒ - áƒ’áƒáƒ“áƒáƒ•áƒ˜áƒ§áƒ•áƒáƒœáƒáƒ— áƒžáƒáƒ–áƒ˜áƒªáƒ˜áƒ 0-áƒ–áƒ”, áƒ’áƒáƒ“áƒáƒ•áƒ˜áƒ¢áƒáƒœáƒáƒ— áƒ”áƒšáƒ”áƒ›áƒ”áƒœáƒ¢áƒ˜ áƒ“áƒ áƒ¨áƒ”áƒ›áƒ“áƒ”áƒ’ áƒ˜áƒ¡áƒ”áƒ• áƒ“áƒáƒ•áƒáƒ‘áƒ áƒ£áƒœáƒáƒ— CSS áƒ¢áƒ áƒáƒœáƒ–áƒ˜áƒ¨áƒ”áƒœáƒ˜
           slider.style.transition = 'none';
           slider.appendChild(firstChild);
           position = 0;
           slider.style.transform = `translateX(-${position}px)`;
           
-          // ვაძალოთ რეფლოუ, რომ ცვლილებები გამოჩნდეს ტრანზიშენის დაბრუნებამდე
+          // áƒ•áƒáƒ«áƒáƒšáƒáƒ— áƒ áƒ”áƒ¤áƒšáƒáƒ£, áƒ áƒáƒ› áƒªáƒ•áƒšáƒ˜áƒšáƒ”áƒ‘áƒ”áƒ‘áƒ˜ áƒ’áƒáƒ›áƒáƒ©áƒœáƒ“áƒ”áƒ¡ áƒ¢áƒ áƒáƒœáƒ–áƒ˜áƒ¨áƒ”áƒœáƒ˜áƒ¡ áƒ“áƒáƒ‘áƒ áƒ£áƒœáƒ”áƒ‘áƒáƒ›áƒ“áƒ”
           slider.offsetHeight; 
           
-          // დავაბრუნოთ ტრანზიშენი
+          // áƒ“áƒáƒ•áƒáƒ‘áƒ áƒ£áƒœáƒáƒ— áƒ¢áƒ áƒáƒœáƒ–áƒ˜áƒ¨áƒ”áƒœáƒ˜
           slider.style.transition = 'transform 0.1s linear';
         } else {
           slider.style.transform = `translateX(-${position}px)`;
@@ -252,9 +76,9 @@ export default function KviriaHotel() {
         animationRef.current = requestAnimationFrame(animate);
       };
       
-      // დაიწყე ანიმაცია
+      // áƒ“áƒáƒ˜áƒ¬áƒ§áƒ” áƒáƒœáƒ˜áƒ›áƒáƒªáƒ˜áƒ
       animationRef.current = requestAnimationFrame(animate);
-    }, 500); // დავაბრუნოთ საწყისი დაყოვნება
+    }, 500); // áƒ“áƒáƒ•áƒáƒ‘áƒ áƒ£áƒœáƒáƒ— áƒ¡áƒáƒ¬áƒ§áƒ˜áƒ¡áƒ˜ áƒ“áƒáƒ§áƒáƒ•áƒœáƒ”áƒ‘áƒ
     
     return () => {
       clearTimeout(timeoutId);
@@ -262,11 +86,11 @@ export default function KviriaHotel() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [sliderImages, loading]); // დავამატოთ loading უკან დამოკიდებულებებში
+  }, [sliderImages, loading]); // áƒ“áƒáƒ•áƒáƒ›áƒáƒ¢áƒáƒ— loading áƒ£áƒ™áƒáƒœ áƒ“áƒáƒ›áƒáƒ™áƒ˜áƒ“áƒ”áƒ‘áƒ£áƒšáƒ”áƒ‘áƒ”áƒ‘áƒ¨áƒ˜
 
   const [isMobile, setIsMobile] = useState(false)
 
-  // მთავარი ფოტოს პრელოდი — ბრაუზერი ქეშირებს, ჩატვირთვა უფრო სწრაფია
+  // áƒ›áƒ—áƒáƒ•áƒáƒ áƒ˜ áƒ¤áƒáƒ¢áƒáƒ¡ áƒžáƒ áƒ”áƒšáƒáƒ“áƒ˜ â€” áƒ‘áƒ áƒáƒ£áƒ–áƒ”áƒ áƒ˜ áƒ¥áƒ”áƒ¨áƒ˜áƒ áƒ”áƒ‘áƒ¡, áƒ©áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ áƒ£áƒ¤áƒ áƒ áƒ¡áƒ¬áƒ áƒáƒ¤áƒ˜áƒ
   useEffect(() => {
     if (!heroImage || heroImage.includes("placeholder")) return
     const link = document.createElement("link")
@@ -290,8 +114,8 @@ export default function KviriaHotel() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // მხოლოდ ვალიდური სურათები + ლიმიტი მთავარ გვერდზე — რათა წერტილები არ იყოს ძალიან ბევრი
-  const MAX_GALLERY_ON_HOME = 16 // მაქს 4 სლაიდი დესკტოპზე, 12 მობილურზე — წერტილები არ იყოს ზედმეტი
+  // áƒ›áƒ®áƒáƒšáƒáƒ“ áƒ•áƒáƒšáƒ˜áƒ“áƒ£áƒ áƒ˜ áƒ¡áƒ£áƒ áƒáƒ—áƒ”áƒ‘áƒ˜ + áƒšáƒ˜áƒ›áƒ˜áƒ¢áƒ˜ áƒ›áƒ—áƒáƒ•áƒáƒ  áƒ’áƒ•áƒ”áƒ áƒ“áƒ–áƒ” â€” áƒ áƒáƒ—áƒ áƒ¬áƒ”áƒ áƒ¢áƒ˜áƒšáƒ”áƒ‘áƒ˜ áƒáƒ  áƒ˜áƒ§áƒáƒ¡ áƒ«áƒáƒšáƒ˜áƒáƒœ áƒ‘áƒ”áƒ•áƒ áƒ˜
+  const MAX_GALLERY_ON_HOME = 16 // áƒ›áƒáƒ¥áƒ¡ 4 áƒ¡áƒšáƒáƒ˜áƒ“áƒ˜ áƒ“áƒ”áƒ¡áƒ™áƒ¢áƒáƒžáƒ–áƒ”, 12 áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ–áƒ” â€” áƒ¬áƒ”áƒ áƒ¢áƒ˜áƒšáƒ”áƒ‘áƒ˜ áƒáƒ  áƒ˜áƒ§áƒáƒ¡ áƒ–áƒ”áƒ“áƒ›áƒ”áƒ¢áƒ˜
   const displayGalleryImages = useMemo(
     () => galleryImages
       .filter((url) => !galleryFailedUrls.has(url))
@@ -320,33 +144,8 @@ export default function KviriaHotel() {
     setCurrentGalleryIndex((prev) => (prev > 0 ? prev - 1 : 0))
   }
 
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-    } catch (error) {
-      // Silent error handling
-    }
-  }
-
-  // Placeholder images for when Firebase images aren't loaded yet
-  const placeholderSliderImages = [
-    "/placeholder.svg?height=200&width=400&text=Slider+1",
-    "/placeholder.svg?height=200&width=400&text=Slider+2",
-    "/placeholder.svg?height=200&width=400&text=Slider+3",
-    "/placeholder.svg?height=200&width=400&text=Slider+4",
-    "/placeholder.svg?height=200&width=400&text=Slider+5",
-  ]
-
   const placeholderStoryImages = [
     "/placeholder.svg?height=240&width=320&text=Story+1"
-  ]
-
-  const placeholderLargePhoto = "/placeholder.svg?height=400&width=1200&text=Large+Photo"
-
-  const placeholderGalleryImages = [
-    "/placeholder.svg?height=320&width=400&text=Gallery+1",
-    "/placeholder.svg?height=320&width=400&text=Gallery+2",
-    "/placeholder.svg?height=320&width=400&text=Gallery+3",
   ]
 
   const placeholderGuestReviewImage = "/placeholder.svg?height=500&width=500&text=Guest+Review"
@@ -400,35 +199,6 @@ export default function KviriaHotel() {
                 <Link href="/booking?checkInDate=28.07.2025&checkOutDate=29.07.2025">Book Now</Link>
               </Button>
 
-              {/* Login/User Menu */}
-              {user ? (
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <User className="w-4 h-4" />
-                    <span className="hidden sm:inline">{user.displayName || user.email}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSignOut}
-                    className="text-orange-400 hover:text-orange-300"
-                  >
-                    <span className="hidden sm:inline">Sign Out</span>
-                    <X className="sm:hidden w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Link href="/admin/login">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10"
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Login</span>
-                  </Button>
-                </Link>
-              )}
             </div>
           </div>
           
@@ -477,18 +247,6 @@ export default function KviriaHotel() {
               >
                 CONTACT
               </a>
-              {/* Admin Panel Link for Mobile */}
-              {user && isAdmin && (
-                <Link
-                  href="/admin/dashboard"
-                  className="flex items-center py-2 text-sm text-orange-400 hover:text-orange-300"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  ADMIN PANEL
-                </Link>
-              )}
-              
               {/* Book Now Button for Mobile */}
               <div className="py-2">
                 <div onClick={() => setMobileMenuOpen(false)}>
@@ -507,7 +265,7 @@ export default function KviriaHotel() {
         </div>
       </nav>
 
-      {/* Hero Section — პლეისჰოლდერი არ ჩანს; სურათი მხოლოდ როცა URL ჩატვირთულია, ქეშირება/პრიორიტეტი */}
+      {/* Hero Section â€” áƒžáƒšáƒ”áƒ˜áƒ¡áƒ°áƒáƒšáƒ“áƒ”áƒ áƒ˜ áƒáƒ  áƒ©áƒáƒœáƒ¡; áƒ¡áƒ£áƒ áƒáƒ—áƒ˜ áƒ›áƒ®áƒáƒšáƒáƒ“ áƒ áƒáƒªáƒ URL áƒ©áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ£áƒšáƒ˜áƒ, áƒ¥áƒ”áƒ¨áƒ˜áƒ áƒ”áƒ‘áƒ/áƒžáƒ áƒ˜áƒáƒ áƒ˜áƒ¢áƒ”áƒ¢áƒ˜ */}
       <section className="relative w-full bg-black aspect-[3/4] md:aspect-video md:max-h-[75vh]">
         <div className="absolute inset-0 bg-black">
           {heroImage && !heroImage.includes("placeholder") && (
@@ -546,7 +304,7 @@ export default function KviriaHotel() {
       <section className="py-8 bg-[#242323] text-center">
         <h1 className="text-3xl md:text-4xl font-bold tracking-wide text-white">Hidden Paradise in Telavi</h1>
      
-        {/* ჩატვირთვის ანიმაცია ტექსტის ქვემოთ */}
+        {/* áƒ©áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ˜áƒ¡ áƒáƒœáƒ˜áƒ›áƒáƒªáƒ˜áƒ áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ˜áƒ¡ áƒ¥áƒ•áƒ”áƒ›áƒáƒ— */}
         {loading && (
           <div className="flex justify-center items-center mt-10">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-400"></div>
@@ -554,7 +312,7 @@ export default function KviriaHotel() {
         )}
       </section>
 
-      {/* Image Gallery Preview - უსასრულო სლაიდერი; ცარიელი სექცია არ ჩანს */}
+      {/* Image Gallery Preview - áƒ£áƒ¡áƒáƒ¡áƒ áƒ£áƒšáƒ áƒ¡áƒšáƒáƒ˜áƒ“áƒ”áƒ áƒ˜; áƒªáƒáƒ áƒ˜áƒ”áƒšáƒ˜ áƒ¡áƒ”áƒ¥áƒªáƒ˜áƒ áƒáƒ  áƒ©áƒáƒœáƒ¡ */}
       {!loading && sliderImages.length > 0 && (
       <section className="py-6 bg-[#242323]">
         <div className="w-full px-0 overflow-hidden">
@@ -612,30 +370,30 @@ export default function KviriaHotel() {
               Located in the heart of Georgia's famous wine region, Kakheti, Hotel Serodani is a peaceful hideaway in Village Shalauri, surrounded by nature. With stunning views of the Alazani Valley and Caucasus Mountains, our eco-friendly wooden cottages offer comfort, calm, and authentic Georgian charm.
             </p>
             <p>
-              Cosy nature, Fresh air, Outdoor pools, Georgian Restaurant, our handcrafted wine and warm hospitality—Serodani is a perfect place for families, couples, and friends seeking true relaxation.
+              Cosy nature, Fresh air, Outdoor pools, Georgian Restaurant, our handcrafted wine and warm hospitalityâ€”Serodani is a perfect place for families, couples, and friends seeking true relaxation.
             </p>
             <p>
               <strong className="text-2xl">Cottages</strong><br />
-              We offer 6 uniquely designed wooden cottages, Each one designed for comfort and privacy, ideal for romantic getaways, family trips, or a peaceful weekend with friends. Each cottage belongs to a different category and is fully equipped with all the necessary modern amenities to ensure your comfort and relaxation. Surrounded by gardens, mountain views, and fresh air—you'll feel at home the moment you arrive.
+              We offer 6 uniquely designed wooden cottages, Each one designed for comfort and privacy, ideal for romantic getaways, family trips, or a peaceful weekend with friends. Each cottage belongs to a different category and is fully equipped with all the necessary modern amenities to ensure your comfort and relaxation. Surrounded by gardens, mountain views, and fresh airâ€”you'll feel at home the moment you arrive.
             </p>
             <p>
               <strong className="text-2xl">Food & Wine</strong><br />
-              Our on-site restaurant serves traditional Georgian cuisine made with fresh, local ingredients. We also produce a variety of Georgian wines, aged in our own cellar. Guests are welcome to join wine tastings and learn the stories behind each bottle. With two bars—indoor and outdoor—you'll always find a perfect spot.
+              Our on-site restaurant serves traditional Georgian cuisine made with fresh, local ingredients. We also produce a variety of Georgian wines, aged in our own cellar. Guests are welcome to join wine tastings and learn the stories behind each bottle. With two barsâ€”indoor and outdoorâ€”you'll always find a perfect spot.
             </p>
             <p>
               Hotel Serodani is only 2 kms away from Telavi. Tbilisi Airport is 62 km away. (1.5 hour). There is a bus stop next to the hotel.
             </p>
           </div>
 
-          {/* Story Images - გაფართოებული კონტეინერი პანორამული ფოტოებისთვის */}
+          {/* Story Images - áƒ’áƒáƒ¤áƒáƒ áƒ—áƒáƒ”áƒ‘áƒ£áƒšáƒ˜ áƒ™áƒáƒœáƒ¢áƒ”áƒ˜áƒœáƒ”áƒ áƒ˜ áƒžáƒáƒœáƒáƒ áƒáƒ›áƒ£áƒšáƒ˜ áƒ¤áƒáƒ¢áƒáƒ”áƒ‘áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡ */}
           <div className="w-full overflow-hidden mb-12">
             <div className="w-full max-w-7xl mx-auto">
               {storyImages.length > 0 ? (
-                // მხოლოდ პირველი ფოტო გამოვაჩინოთ, თუ ის არსებობს
+                // áƒ›áƒ®áƒáƒšáƒáƒ“ áƒžáƒ˜áƒ áƒ•áƒ”áƒšáƒ˜ áƒ¤áƒáƒ¢áƒ áƒ’áƒáƒ›áƒáƒ•áƒáƒ©áƒ˜áƒœáƒáƒ—, áƒ—áƒ£ áƒ˜áƒ¡ áƒáƒ áƒ¡áƒ”áƒ‘áƒáƒ‘áƒ¡
                 <div 
                   className="relative w-full mb-0"
                   style={{ 
-                    paddingTop: `${(100 / 5005) * 100}%` /* პროპორციის შენარჩუნება: 5005:1365 */ 
+                    paddingTop: `${(100 / 5005) * 100}%` /* áƒžáƒ áƒáƒžáƒáƒ áƒªáƒ˜áƒ˜áƒ¡ áƒ¨áƒ”áƒœáƒáƒ áƒ©áƒ£áƒœáƒ”áƒ‘áƒ: 5005:1365 */ 
                   }}
                 >
                   <Image
@@ -649,11 +407,11 @@ export default function KviriaHotel() {
                   />
                 </div>
               ) : (
-                // ფოლბეკ ფოტო, თუ ფოტო არ არის
+                // áƒ¤áƒáƒšáƒ‘áƒ”áƒ™ áƒ¤áƒáƒ¢áƒ, áƒ—áƒ£ áƒ¤áƒáƒ¢áƒ áƒáƒ  áƒáƒ áƒ˜áƒ¡
                 <div 
                   className="relative w-full mb-0"
                   style={{ 
-                    paddingTop: `${(1365 / 5005) * 100}%` /* პროპორციის შენარჩუნება: 5005:1365 */ 
+                    paddingTop: `${(1365 / 5005) * 100}%` /* áƒžáƒ áƒáƒžáƒáƒ áƒªáƒ˜áƒ˜áƒ¡ áƒ¨áƒ”áƒœáƒáƒ áƒ©áƒ£áƒœáƒ”áƒ‘áƒ: 5005:1365 */ 
                   }}
                 >
                   <Image
@@ -678,7 +436,7 @@ export default function KviriaHotel() {
             </p>
             <p>
               <strong>Culinary Masterclasses</strong><br />
-              We offer a truly authentic experience through Georgian cooking masterclasses. Make Your Own Khinkali – Learn to prepare and shape Georgia's beloved dumplings by hand, guided by local cooks.
+              We offer a truly authentic experience through Georgian cooking masterclasses. Make Your Own Khinkali â€“ Learn to prepare and shape Georgia's beloved dumplings by hand, guided by local cooks.
             </p>
             <p>
               <strong>Churchkhela Workshops</strong><br />
@@ -699,11 +457,11 @@ export default function KviriaHotel() {
           
           {displayGalleryImages.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-xl text-gray-400">გალერიის ფოტოები ჯერ არ არის ხელმისაწვდომი.</p>
+              <p className="text-xl text-gray-400">áƒ’áƒáƒšáƒ”áƒ áƒ˜áƒ˜áƒ¡ áƒ¤áƒáƒ¢áƒáƒ”áƒ‘áƒ˜ áƒ¯áƒ”áƒ  áƒáƒ  áƒáƒ áƒ˜áƒ¡ áƒ®áƒ”áƒšáƒ›áƒ˜áƒ¡áƒáƒ¬áƒ•áƒ“áƒáƒ›áƒ˜.</p>
             </div>
           ) : (
             <>
-              {/* Gallery Container with Navigation — წერტილები და სლაიდები მხოლოდ displayGalleryImages-ის მიხედვით */}
+              {/* Gallery Container with Navigation â€” áƒ¬áƒ”áƒ áƒ¢áƒ˜áƒšáƒ”áƒ‘áƒ˜ áƒ“áƒ áƒ¡áƒšáƒáƒ˜áƒ“áƒ”áƒ‘áƒ˜ áƒ›áƒ®áƒáƒšáƒáƒ“ displayGalleryImages-áƒ˜áƒ¡ áƒ›áƒ˜áƒ®áƒ”áƒ“áƒ•áƒ˜áƒ— */}
               <div className="relative max-w-5xl mx-auto flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -782,7 +540,7 @@ export default function KviriaHotel() {
                 </Button>
               </div>
               
-              {/* წერტილები — მხოლოდ იმდენი, რამდენი სლაიდიც არსებობს */}
+              {/* áƒ¬áƒ”áƒ áƒ¢áƒ˜áƒšáƒ”áƒ‘áƒ˜ â€” áƒ›áƒ®áƒáƒšáƒáƒ“ áƒ˜áƒ›áƒ“áƒ”áƒœáƒ˜, áƒ áƒáƒ›áƒ“áƒ”áƒœáƒ˜ áƒ¡áƒšáƒáƒ˜áƒ“áƒ˜áƒª áƒáƒ áƒ¡áƒ”áƒ‘áƒáƒ‘áƒ¡ */}
               <div className="flex justify-center mt-6 gap-2 flex-wrap">
                 {Array.from({
                   length: isMobile ? displayGalleryImages.length : Math.ceil(displayGalleryImages.length / 3) || 1,
@@ -803,7 +561,7 @@ export default function KviriaHotel() {
         </div>
       </section>
 
-      {/* Guest Review Photo — რესპონსიული სიმაღლე, ცარიელი ბლოკის შემცირება */}
+      {/* Guest Review Photo â€” áƒ áƒ”áƒ¡áƒžáƒáƒœáƒ¡áƒ˜áƒ£áƒšáƒ˜ áƒ¡áƒ˜áƒ›áƒáƒ¦áƒšáƒ”, áƒªáƒáƒ áƒ˜áƒ”áƒšáƒ˜ áƒ‘áƒšáƒáƒ™áƒ˜áƒ¡ áƒ¨áƒ”áƒ›áƒªáƒ˜áƒ áƒ”áƒ‘áƒ */}
       <section className="py-8 md:py-12 bg-[#242323]">
         <div className="max-w-6xl mx-auto px-4">
           <div className="relative w-full mx-auto h-[280px] sm:h-[360px] md:h-[420px] lg:h-[500px] xl:h-[560px] max-w-[980px]">

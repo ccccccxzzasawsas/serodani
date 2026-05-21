@@ -1,16 +1,13 @@
 "use client"
 
 import React from "react"
-import { AuthProvider } from "@/lib/auth"
-import { AdminButton } from "@/components/admin-button"
 import Script from "next/script"
 import { Toaster } from "@/components/ui/toaster"
 import { FacebookIcon, Instagram } from "lucide-react"
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <AdminButton />
+    <>
       {children}
       <Toaster />
       
@@ -121,6 +118,6 @@ export default function Template({ children }: { children: React.ReactNode }) {
           })();
         `}
       </Script>
-    </AuthProvider>
+    </>
   )
 } 
