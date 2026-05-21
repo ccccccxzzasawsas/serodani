@@ -160,15 +160,15 @@ export default function FineDiningPage() {
 
       {diningImages.length > 0 && (
         <section className="py-8">
-          <div className="w-full overflow-x-auto px-4">
-            <div className="flex gap-2 min-w-max">
-              {diningImages.map((src, index) => (
+          <div className="restaurant-slider w-full overflow-hidden">
+            <div className="restaurant-slider-track flex w-max gap-2">
+              {[...diningImages, ...diningImages].map((src, index) => (
                 <button
-                  key={src}
+                  key={`${src}-${index}`}
                   type="button"
                   className="relative h-[280px] w-[350px] flex-shrink-0 overflow-hidden"
-                  onClick={() => openModal(src, "dining", index)}
-                  aria-label={`Open restaurant image ${index + 1}`}
+                  onClick={() => openModal(src, "dining", index % diningImages.length)}
+                  aria-label={`Open restaurant image ${(index % diningImages.length) + 1}`}
                 >
                   <Image
                     src={src}
@@ -183,6 +183,39 @@ export default function FineDiningPage() {
               ))}
             </div>
           </div>
+          <style jsx global>{`
+            .restaurant-slider {
+              scrollbar-width: none;
+              -ms-overflow-style: none;
+            }
+
+            .restaurant-slider::-webkit-scrollbar {
+              display: none;
+            }
+
+            .restaurant-slider-track {
+              animation: restaurant-scroll 45s linear infinite;
+            }
+
+            .restaurant-slider:hover .restaurant-slider-track {
+              animation-play-state: paused;
+            }
+
+            @keyframes restaurant-scroll {
+              from {
+                transform: translateX(0);
+              }
+              to {
+                transform: translateX(calc(-50% - 4px));
+              }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+              .restaurant-slider-track {
+                animation: none;
+              }
+            }
+          `}</style>
         </section>
       )}
 
